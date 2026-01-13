@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="四目並べ">
+    <link rel="apple-touch-icon" href="icon512.png">
+    <link rel="icon" type="image/png" href="icon512.png">
+    <link rel="manifest" href="manifest.json">
+    <title>四目並べ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <style>
+        :root {
+            /* デフォルト（一般的なスマホ）の設定 */
+            --board-max-width: 480px;
+            --board-padding: 12px;
+            --grid-gap: 6px;
+            --piece-scale: 0.92; /* 穴・コマの大きさ（1.0が最大） */
+        }
+
+        /* iPhone SE (第3世代) など画面幅が非常に狭いデバイス */
+        @media (max-width: 375px) {
+            :root {
+                --board-max-width: 340px;
+                --grid-gap: 4px;
+                --board-padding: 10px;
+                --piece-scale: 0.9;
+            }
+        }
+
+        /* iPad Air (第3世代 10.5インチ) / タブレット */
+        @media (min-width: 768px) {
+            :root {
+                --board-max-width: 620px; /* 外径を維持 */
+                --board-padding: 24px;   /* 板の余白を広げて窮屈さを解消 */
+                --grid-gap: 12px;        /* 穴同士の間隔を広く */
+                --piece-scale: 0.82;     /* 穴・コマを小さくして板の面積を増やす */
+            }
+            #game-title { font-size: 36px !important; }
+        }
+
+        * { -webkit-tap-highlight-color: transparent; }
+        body { 
+            overscroll-behavior: none; 
+            background-color: #f3f4f6; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #game-container {
+            max-width: var(--board-max-width) !important;
+            width: 100%;
+        }
+
+        .board-bg {
+            background: #2563eb;
+            border-radius: 20px;
+            padding: var(--board-padding);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3);
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: var(--grid-gap);
+        }
+
+        .cell-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 穴とコマの共通スタイル */
+        .cell-content {
+            width: calc(100% * var(--piece-scale));
+            height: calc(100% * var(--piece-scale));
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        /* アニメーション類 */
+        @keyframes drop {
+            0% { transform: translateY(-400px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .drop-animation { animation: drop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.6); transform: scale(calc(var(--piece-scale) * 0.95)); border: 3px solid white; }
+            50% { box-shadow: 0 0 30px 12px rgba(255, 255, 255, 0.9); transform: scale(calc(var(--piece-scale) * 1.05)); border: 3px solid white; }
+        }
+        .win-glow { animation: pulse-glow 1.5s ease-in-out infinite; z-index: 10; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; backdrop-filter: blur(0px); }
+            to { opacity: 1; backdrop-filter: blur(8px); }
+        }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="m-0 p-0 overflow-hidden">
+    <div id="app"></div>
+
+<script>
+    const ROWS = 6;
+    const COLS = 7;
+    const PLAYER1 = 1;
+    const PLAYER2 = 2;
+
+    let board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+    let currentPlayer = PLAYER1;
+    let winner = null;
+    let winningCells = [];
+    let isAnimating = false;
+    let history = [];
+    let undoCount = { [PLAYER1]: 0, [PLAYER2]: 0 };
+    const MAX_UNDO = 3;
+
+    function checkWinner(board, row, col, player) {
+        const directions = [
+            [[0, 1], [0, -1]], [[1, 0], [-1, 0]],
+            [[1, 1], [-1, -1]], [[1, -1], [-1, 1]]
+        ];
+        for (const [dir1, dir2] of directions) {
+            const cells = [[row, col]];
+            for (const [dr, dc] of [dir1, dir2]) {
+                let r = row + dr, c = col + dc;
+                while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
+                    cells.push([r, c]);
+                    r += dr; c += dc;
+                }
+            }
+            if (cells.length >= 4) return cells;
+        }
+        return null;
+    }
+
+    function dropPiece(col) {
+        if (winner || isAnimating) return;
+        for (let row = ROWS - 1; row >= 0; row--) {
+            if (board[row][col] === 0) {
+                isAnimating = true;
+                const activePlayer = currentPlayer;
+                history.push({ board: board.map(r => [...r]), player: activePlayer, row, col });
+                board[row][col] = activePlayer;
+                render(); 
+
+                const piece = document.querySelector(`[data-piece-row="${row}"][data-piece-col="${col}"] .cell-piece`);
+                if (piece) piece.classList.add('drop-animation');
+                
+                setTimeout(() => {
+                    const winCells = checkWinner(board, row, col, activePlayer);
+                    if (winCells) { winner = activePlayer; winningCells = winCells; } 
+                    else { currentPlayer = activePlayer === PLAYER1 ? PLAYER2 : PLAYER1; }
+                    isAnimating = false;
+                    render();
+                }, 400);
+                return;
+            }
+        }
+    }
+
+    function undoMove() {
+        if (history.length === 0 || isAnimating || winner) return;
+        const lastMove = history[history.length - 1];
+        if (undoCount[lastMove.player] >= MAX_UNDO) return;
+        history.pop();
+        undoCount[lastMove.player]++;
+        if (history.length > 0) {
+            const prevState = history[history.length - 1];
+            board = prevState.board.map(r => [...r]);
+            currentPlayer = prevState.player === PLAYER1 ? PLAYER2 : PLAYER1;
+        } else {
+            board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+            currentPlayer = PLAYER1;
+        }
+        render();
+    }
+
+    function resetGame() {
+        board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+        currentPlayer = PLAYER1; winner = null; winningCells = [];
+        isAnimating = false; history = [];
+        undoCount = { [PLAYER1]: 0, [PLAYER2]: 0 };
+        render();
+    }
+
+    function render() {
+        const app = document.getElementById('app');
+        const gridHtml = board.map((row, rIdx) => 
+            row.map((cell, cIdx) => {
+                const isWinning = winningCells.some(([r, c]) => r === rIdx && c === cIdx);
+                return `
+                    <div class="cell-container" onclick="dropPiece(${cIdx})" style="cursor: pointer;" data-piece-row="${rIdx}" data-piece-col="${cIdx}">
+                        <div class="cell-content" style="background: #1e3a8a; box-shadow: inset 0 4px 8px rgba(0,0,0,0.4);"></div>
+                        ${cell !== 0 ? `
+                            <div class="cell-piece cell-content ${isWinning ? 'win-glow' : ''}" 
+                                 style="background: ${cell === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; 
+                                 box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 5;">
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('')
+        ).join('');
+
+        app.innerHTML = `
+            <div style="min-height: 100vh; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; user-select: none;">
+                
+                ${winner ? `
+                    <div class="fade-in" style="position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 60px 20px 40px;">
+                        <div></div>
+                        <div style="text-align: center; color: white;">
+                            <p style="font-size: 20px; font-weight: 500; letter-spacing: 0.1em; margin-bottom: 8px; opacity: 0.9;">CONGRATULATIONS!</p>
+                            <h2 style="font-size: clamp(40px, 10vw, 64px); font-weight: 900; line-height: 1;">
+                                <span style="color: ${winner === PLAYER1 ? '#ef4444' : '#fbbf24'};">${winner === PLAYER1 ? 'RED' : 'YELLOW'}</span> WINS
+                            </h2>
+                        </div>
+                        <button onclick="resetGame()" style="background: white; color: black; padding: 16px 48px; border-radius: 100px; font-weight: bold; font-size: 18px; border: none; cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 300px;">PLAY AGAIN</button>
+                    </div>
+                ` : ''}
+
+                <div id="game-container" style="transition: opacity 0.4s; ${winner ? 'opacity: 0.4; filter: blur(2px);' : ''}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h1 id="game-title" style="font-size: 24px; font-weight: 800; color: #1f2937; letter-spacing: -0.02em;">CONNECT 4</h1>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="undoMove()" ${history.length === 0 || winner ? 'disabled' : ''} class="px-4 py-2 rounded-full text-sm font-semibold transition-all ${history.length === 0 || winner ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}">
+                                ← UNDO
+                            </button>
+                            <button onclick="resetGame()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:bg-gray-300 transition-all">
+                                RESET
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="board-bg">
+                        ${gridHtml}
+                    </div>
+
+                    <div style="margin-top: 24px; display: flex; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 16px; padding: 8px 20px; background: white; border-radius: 100px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                            <span style="font-weight: 700; color: #4b5563; font-size: 13px; letter-spacing: 0.05em;">NEXT TURN</span>
+                            <div style="width: 28px; height: 28px; border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; transition: all 0.3s;" class="${!winner ? 'animate-pulse' : ''}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    render();
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('Service Worker Registered'));
+  }
+</script>
+</body>
+</html>
