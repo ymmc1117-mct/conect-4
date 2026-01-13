@@ -13,14 +13,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <style>
         :root {
-            /* デフォルト（一般的なスマホ）の設定 */
             --board-max-width: 480px;
             --board-padding: 12px;
             --grid-gap: 6px;
-            --piece-scale: 0.92; /* 穴・コマの大きさ（1.0が最大） */
+            --piece-scale: 0.92;
         }
 
-        /* iPhone SE (第3世代) など画面幅が非常に狭いデバイス */
         @media (max-width: 375px) {
             :root {
                 --board-max-width: 340px;
@@ -30,13 +28,12 @@
             }
         }
 
-        /* iPad Air (第3世代 10.5インチ) / タブレット */
         @media (min-width: 768px) {
             :root {
-                --board-max-width: 620px; /* 外径を維持 */
-                --board-padding: 24px;   /* 板の余白を広げて窮屈さを解消 */
-                --grid-gap: 12px;        /* 穴同士の間隔を広く */
-                --piece-scale: 0.82;     /* 穴・コマを小さくして板の面積を増やす */
+                --board-max-width: 620px;
+                --board-padding: 24px;
+                --grid-gap: 12px;
+                --piece-scale: 0.82;
             }
             #game-title { font-size: 36px !important; }
         }
@@ -72,7 +69,6 @@
             justify-content: center;
         }
 
-        /* 穴とコマの共通スタイル */
         .cell-content {
             width: calc(100% * var(--piece-scale));
             height: calc(100% * var(--piece-scale));
@@ -80,7 +76,6 @@
             position: absolute;
         }
 
-        /* アニメーション類 */
         @keyframes drop {
             0% { transform: translateY(-400px); opacity: 0; }
             100% { transform: translateY(0); opacity: 1; }
@@ -114,9 +109,8 @@
     let winner = null;
     let winningCells = [];
     let isAnimating = false;
-    let history = [];
-    let undoCount = { [PLAYER1]: 0, [PLAYER2]: 0 };
-    const MAX_UNDO = 3;
+    let history = []; // 盤面の状態のみを記録
+    let undoCount = { [PLAYER1]: MAX_UNDO = 3, [PLAYER2]: MAX_UNDO = 3 };
 
     function checkWinner(board, row, col, player) {
         const directions = [
@@ -142,9 +136,15 @@
         for (let row = ROWS - 1; row >= 0; row--) {
             if (board[row][col] === 0) {
                 isAnimating = true;
+                
+                // 現在の状態を履歴に保存
+                history.push({
+                    board: board.map(r => [...r]),
+                    player: currentPlayer
+                });
+
+                board[row][col] = currentPlayer;
                 const activePlayer = currentPlayer;
-                history.push({ board: board.map(r => [...r]), player: activePlayer, row, col });
-                board[row][col] = activePlayer;
                 render(); 
 
                 const piece = document.querySelector(`[data-piece-row="${row}"][data-piece-col="${col}"] .cell-piece`);
@@ -152,8 +152,12 @@
                 
                 setTimeout(() => {
                     const winCells = checkWinner(board, row, col, activePlayer);
-                    if (winCells) { winner = activePlayer; winningCells = winCells; } 
-                    else { currentPlayer = activePlayer === PLAYER1 ? PLAYER2 : PLAYER1; }
+                    if (winCells) { 
+                        winner = activePlayer; 
+                        winningCells = winCells; 
+                    } else { 
+                        currentPlayer = activePlayer === PLAYER1 ? PLAYER2 : PLAYER1; 
+                    }
                     isAnimating = false;
                     render();
                 }, 400);
@@ -164,18 +168,19 @@
 
     function undoMove() {
         if (history.length === 0 || isAnimating || winner) return;
-        const lastMove = history[history.length - 1];
-        if (undoCount[lastMove.player] >= MAX_UNDO) return;
+        
+        // 戻したいのは「今のターンの人」ではなく「直前に置いた人」
+        const lastState = history[history.length - 1];
+        const playerWhoMoved = lastState.player;
+
+        if (undoCount[playerWhoMoved] <= 0) return;
+
+        // 状態を戻す
+        board = lastState.board;
+        currentPlayer = lastState.player;
+        undoCount[playerWhoMoved]--;
         history.pop();
-        undoCount[lastMove.player]++;
-        if (history.length > 0) {
-            const prevState = history[history.length - 1];
-            board = prevState.board.map(r => [...r]);
-            currentPlayer = prevState.player === PLAYER1 ? PLAYER2 : PLAYER1;
-        } else {
-            board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
-            currentPlayer = PLAYER1;
-        }
+        
         render();
     }
 
@@ -183,12 +188,30 @@
         board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
         currentPlayer = PLAYER1; winner = null; winningCells = [];
         isAnimating = false; history = [];
-        undoCount = { [PLAYER1]: 0, [PLAYER2]: 0 };
+        undoCount = { [PLAYER1]: 3, [PLAYER2]: 3 };
         render();
     }
 
     function render() {
         const app = document.getElementById('app');
+        
+        // UNDOボタンのスタイル決定
+        const canUndo = history.length > 0 && !winner && !isAnimating && undoCount[history[history.length-1].player] > 0;
+        let undoBtnStyle = "bg-gray-300 text-gray-500 cursor-not-allowed";
+        let undoLabel = "UNDO";
+
+        if (history.length > 0 && !winner) {
+            const lastPlayer = history[history.length - 1].player;
+            const remaining = undoCount[lastPlayer];
+            undoLabel = `UNDO (${remaining})`;
+            
+            if (remaining > 0) {
+                undoBtnStyle = lastPlayer === PLAYER1 
+                    ? "bg-red-500 text-white shadow-md active:scale-95" 
+                    : "bg-yellow-400 text-black shadow-md active:scale-95";
+            }
+        }
+
         const gridHtml = board.map((row, rIdx) => 
             row.map((cell, cIdx) => {
                 const isWinning = winningCells.some(([r, c]) => r === rIdx && c === cIdx);
@@ -226,10 +249,10 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h1 id="game-title" style="font-size: 24px; font-weight: 800; color: #1f2937; letter-spacing: -0.02em;">CONNECT 4</h1>
                         <div style="display: flex; gap: 8px;">
-                            <button onclick="undoMove()" ${history.length === 0 || winner ? 'disabled' : ''} class="px-4 py-2 rounded-full text-sm font-semibold transition-all ${history.length === 0 || winner ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}">
-                                ← UNDO
+                            <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="px-4 py-2 rounded-full text-xs font-bold transition-all ${undoBtnStyle}">
+                                ${undoLabel}
                             </button>
-                            <button onclick="resetGame()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:bg-gray-300 transition-all">
+                            <button onclick="resetGame()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full text-xs font-bold hover:bg-gray-300 transition-all shadow-sm">
                                 RESET
                             </button>
                         </div>
@@ -251,10 +274,10 @@
     }
 
     render();
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('Service Worker Registered'));
-  }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
+    }
 </script>
 </body>
 </html>
