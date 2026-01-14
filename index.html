@@ -13,26 +13,65 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <style>
         :root {
-            --board-max-width: 560px;
-            --board-padding: 16px;
-            --grid-gap: 8px;
+            /* 基本設定 */
+            --board-max-width: 500px;
+            --board-padding: 12px;
+            --grid-gap: 6px;
             --piece-scale: 0.92;
-            /* UNDO活性時の影をベースに、少し薄く広がりを抑えた共通の影 */
-            --shared-soft-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            --shared-soft-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+            
+            /* タイトル：最小値を下げ、改行を防ぐ */
+            --title-size: clamp(16px, 5.5vw, 28px);
+            --btn-text: clamp(10px, 3vw, 12px);
+            --btn-padding: 8px 16px;
+            --next-ui-size: 28px;
+
+            /* ダイアログ：レスポンシブサイズ */
+            --modal-width: 85vw;
+            --modal-max-width: 300px;
+            --modal-title: 20px;
+            --modal-btn-padding: 14px;
         }
 
+        /* 小さなデバイス */
         @media (max-width: 375px) {
-            :root { --board-max-width: 340px; --grid-gap: 4px; --board-padding: 10px; --piece-scale: 0.9; }
+            :root { 
+                --board-max-width: 310px; 
+                --grid-gap: 4px; 
+                --board-padding: 8px;
+                --next-ui-size: 24px;
+            }
         }
 
+        /* 大きな画面 (タブレット・PC) */
         @media (min-width: 768px) {
-            :root { --board-max-width: 720px; --board-padding: 24px; --grid-gap: 12px; --piece-scale: 0.88; }
-            #game-title { font-size: 38px !important; }
+            :root { 
+                --board-max-width: 600px; 
+                --board-padding: 20px; 
+                --grid-gap: 10px;
+                --title-size: 36px;
+                --btn-text: 14px;
+                --btn-padding: 10px 24px;
+                --next-ui-size: 36px;
+
+                /* ダイアログを大きく */
+                --modal-max-width: 420px;
+                --modal-title: 28px;
+                --modal-btn-padding: 18px;
+            }
         }
 
-        @media (orientation: landscape) and (max-height: 768px) {
-            :root { --board-max-width: 520px; --board-padding: 16px; --grid-gap: 8px; }
-            #game-title { font-size: 28px !important; }
+        /* 横向き画面 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            :root { 
+                --board-max-width: 320px; 
+                --board-padding: 8px; 
+                --grid-gap: 4px;
+                --title-size: 18px;
+            }
+            #main-wrapper { padding: 8px !important; }
+            .header-margin { margin-bottom: 10px !important; }
+            .footer-margin { margin-top: 12px !important; }
         }
 
         * { -webkit-tap-highlight-color: transparent; }
@@ -42,13 +81,13 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        #game-container { max-width: var(--board-max-width) !important; width: 90vw; margin: 0 auto; }
+        #game-container { width: 95vw; max-width: var(--board-max-width); margin: 0 auto; }
 
         .board-bg {
             background: #0a2291;
-            border-radius: 24px;
+            border-radius: clamp(12px, 4vw, 24px);
             padding: var(--board-padding);
-            box-shadow: 0 20px 50px -10px rgba(0,0,0,0.25);
+            box-shadow: 0 15px 40px -10px rgba(0,0,0,0.08);
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: var(--grid-gap);
@@ -73,20 +112,11 @@
         @keyframes popUp { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
         .undo-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            font-size: 10px;
-            margin-left: 6px;
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 1.4em; height: 1.4em; border-radius: 50%; font-size: 0.85em; margin-left: 0.5em;
         }
 
-        /* 統一した薄めのふんわり影 */
-        .btn-soft-shadow {
-            box-shadow: var(--shared-soft-shadow);
-        }
+        .btn-soft-shadow { box-shadow: var(--shared-soft-shadow); }
     </style>
 </head>
 <body class="m-0 p-0 overflow-hidden">
@@ -174,8 +204,8 @@
         const remainingUndo = lastMovePlayer ? undoCount[lastMovePlayer] : 0;
         const canUndo = history.length > 0 && !winner && !isAnimating && !showResetConfirm && remainingUndo > 0;
         
-        let undoBtnStyle = "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none";
-        let badgeBg = "rgba(0,0,0,0.1)";
+        let undoBtnStyle = "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none";
+        let badgeBg = "rgba(0,0,0,0.06)";
 
         if (canUndo) {
             undoBtnStyle = lastMovePlayer === PLAYER1 
@@ -193,7 +223,7 @@
                         ${cell !== 0 ? `
                             <div class="cell-piece cell-content ${isWinning ? 'win-glow' : ''}" 
                                  style="background: ${cell === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; 
-                                 box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 5;">
+                                 box-shadow: 0 4px 10px rgba(0,0,0,0.15); z-index: 5;">
                             </div>
                         ` : ''}
                     </div>
@@ -202,41 +232,41 @@
         ).join('');
 
         app.innerHTML = `
-            <div style="min-height: 100vh; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; user-select: none;">
+            <div id="main-wrapper" style="min-height: 100vh; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; user-select: none;">
                 
                 ${showResetConfirm ? `
-                    <div class="fade-in" style="position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); text-align: center; padding: 20px;">
-                        <div class="pop-up" style="max-width: 320px;">
-                            <h3 style="font-size: 24px; font-weight: 800; color: white; margin-bottom: 32px; letter-spacing: 0.05em;">Reset Game?</h3>
-                            <div style="display: flex; flex-direction: column; gap: 16px; align-items: center;">
-                                <button onclick="resetGame()" class="btn-soft-shadow" style="background: white; color: #ef4444; width: 220px; padding: 16px; border-radius: 100px; font-weight: 800; font-size: 16px; border: none; cursor: pointer;">RESET NOW</button>
-                                <button onclick="cancelReset()" style="color: white; font-weight: 600; font-size: 15px; border: none; cursor: pointer; background: none; opacity: 0.8; margin-top: 8px;">CANCEL</button>
+                    <div class="fade-in" style="position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); text-align: center; padding: 20px;">
+                        <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width);">
+                            <h3 style="font-size: var(--modal-title); font-weight: 800; color: white; margin-bottom: 24px; letter-spacing: 0.02em;">Reset Game?</h3>
+                            <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+                                <button onclick="resetGame()" class="btn-soft-shadow" style="background: white; color: #ef4444; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 900; font-size: calc(var(--modal-title) * 0.7); border: none; cursor: pointer;">RESET NOW</button>
+                                <button onclick="cancelReset()" style="color: white; font-weight: 600; font-size: 15px; border: none; cursor: pointer; background: none; opacity: 0.8; margin-top: 4px;">CANCEL</button>
                             </div>
                         </div>
                     </div>
                 ` : ''}
 
                 ${winner ? `
-                    <div class="fade-in" style="position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.7); padding: 80px 20px 60px;">
+                    <div class="fade-in" style="position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.6); padding: 10vh 20px;">
                         <div></div>
                         <div style="text-align: center; color: white;">
-                            <p style="font-size: 22px; font-weight: 500; letter-spacing: 0.2em; margin-bottom: 12px; opacity: 0.8;">WINNER!</p>
-                            <h2 style="font-size: clamp(48px, 12vw, 80px); font-weight: 900; line-height: 1;">
+                            <p style="font-size: 18px; font-weight: 500; letter-spacing: 0.2em; margin-bottom: 8px; opacity: 0.8;">WINNER!</p>
+                            <h2 style="font-size: clamp(40px, 15vw, 72px); font-weight: 900; line-height: 1;">
                                 <span style="color: ${winner === PLAYER1 ? '#ef4444' : '#fbbf24'};">${winner === PLAYER1 ? 'RED' : 'YELLOW'}</span>
                             </h2>
                         </div>
-                        <button onclick="resetGame()" class="btn-soft-shadow" style="background: white; color: black; padding: 20px 60px; border-radius: 100px; font-weight: 900; font-size: 20px; border: none; cursor: pointer; width: 100%; max-width: 320px;">PLAY AGAIN</button>
+                        <button onclick="resetGame()" class="btn-soft-shadow" style="background: white; color: black; padding: 18px 0; border-radius: 100px; font-weight: 900; font-size: 18px; border: none; cursor: pointer; width: 100%; max-width: 280px;">PLAY AGAIN</button>
                     </div>
                 ` : ''}
 
                 <div id="game-container" style="transition: all 0.4s; ${(winner || showResetConfirm) ? 'opacity: 0.3; filter: blur(4px); transform: scale(0.97);' : ''}">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding: 0 4px;">
-                        <div><h1 id="game-title" style="font-size: 28px; font-weight: 900; color: #1e293b; letter-spacing: -0.02em; line-height: 1;">CONNECT 4</h1></div>
-                        <div style="display: flex; gap: 10px;">
-                            <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="flex items-center px-4 py-2.5 rounded-full text-xs font-black transition-all ${undoBtnStyle}">
+                    <div class="header-margin" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 4px;">
+                        <h1 style="font-size: var(--title-size); font-weight: 900; color: #1e293b; letter-spacing: -0.02em; white-space: nowrap;">CONNECT 4</h1>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="flex items-center rounded-full font-black transition-all ${undoBtnStyle}" style="padding: var(--btn-padding); font-size: var(--btn-text);">
                                 UNDO <span class="undo-badge" style="background: ${badgeBg}">${remainingUndo}</span>
                             </button>
-                            <button onclick="confirmReset()" class="px-5 py-2.5 bg-white text-gray-500 border border-gray-100 rounded-full text-xs font-black hover:bg-gray-50 transition-all btn-soft-shadow active:scale-95">
+                            <button onclick="confirmReset()" class="bg-white text-gray-500 border border-gray-100 rounded-full font-black hover:bg-gray-50 transition-all btn-soft-shadow active:scale-95" style="padding: var(--btn-padding); font-size: var(--btn-text);">
                                 RESET
                             </button>
                         </div>
@@ -246,9 +276,9 @@
                         ${gridHtml}
                     </div>
 
-                    <div style="margin-top: 32px; display: flex; justify-content: center; align-items: center; gap: 16px;">
-                        <span style="font-weight: 900; color: #64748b; font-size: 14px; letter-spacing: 0.1em;">NEXT</span>
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: all 0.3s;" class="${!winner ? 'animate-pulse' : ''}"></div>
+                    <div class="footer-margin" style="margin-top: 24px; display: flex; justify-content: center; align-items: center; gap: 12px;">
+                        <span style="font-weight: 900; color: #64748b; font-size: calc(var(--btn-text) + 2px); letter-spacing: 0.1em;">NEXT</span>
+                        <div style="width: var(--next-ui-size); height: var(--next-ui-size); border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: all 0.3s;" class="${!winner ? 'animate-pulse' : ''}"></div>
                     </div>
                 </div>
             </div>
