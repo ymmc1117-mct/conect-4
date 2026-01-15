@@ -140,6 +140,7 @@
     let board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
     let currentPlayer = PLAYER1;
     let winner = null;
+    let isDraw = false;
     let winningCells = [];
     let isAnimating = false;
     let history = []; 
@@ -150,7 +151,7 @@
     function startGame(vsAi) { isAiMode = vsAi; gameStarted = true; resetGame(true); }
 
     function dropPiece(col) {
-        if (!gameStarted || winner || isAnimating || showResetConfirm) return;
+        if (!gameStarted || winner || isDraw || isAnimating || showResetConfirm) return;
         if (isAiMode && currentPlayer === PLAYER2) return; 
         executeMove(col);
     }
@@ -159,6 +160,7 @@
         for (let row = ROWS - 1; row >= 0; row--) {
             if (board[row][col] === 0) {
                 isAnimating = true;
+                // 現在の状態を履歴に保存
                 history.push({ board: board.map(r => [...r]), player: currentPlayer });
                 board[row][col] = currentPlayer;
                 const activePlayer = currentPlayer;
@@ -170,9 +172,11 @@
                     const winCells = checkWinner(board, row, col, activePlayer);
                     if (winCells) {
                         winner = activePlayer; winningCells = winCells;
+                    } else if (isBoardFull(board)) {
+                        isDraw = true;
                     } else {
                         currentPlayer = activePlayer === PLAYER1 ? PLAYER2 : PLAYER1;
-                        if (isAiMode && currentPlayer === PLAYER2 && !winner) {
+                        if (isAiMode && currentPlayer === PLAYER2 && !winner && !isDraw) {
                             setTimeout(makeAiMove, 650);
                         }
                     }
@@ -185,7 +189,7 @@
     }
 
     function makeAiMove() {
-        if (winner || !isAiMode || currentPlayer !== PLAYER2) return;
+        if (winner || isDraw || !isAiMode || currentPlayer !== PLAYER2) return;
         const bestMove = findBestMove(board);
         if (bestMove !== -1) executeMove(bestMove);
     }
@@ -317,29 +321,44 @@
     }
 
     function undoMove() {
-        if (history.length === 0 || isAnimating || winner || showResetConfirm) return;
-        if (isAiMode && history.length >= 2) {
-            history.pop(); history.pop();
-            board = history.length > 0 ? history[history.length-1].board.map(r=>[...r]) : Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
-            currentPlayer = PLAYER1;
+        if (history.length === 0 || isAnimating || winner || isDraw || showResetConfirm) return;
+
+        if (isAiMode) {
+            // AIモードの場合：AIの手と自分の手の2つを戻す必要がある
+            if (history.length >= 2) {
+                // 1. 直前のAIの手の状態を捨てる
+                history.pop(); 
+                // 2. 自分の手の状態を取り出して反映する
+                const prevState = history.pop();
+                board = prevState.board;
+                currentPlayer = prevState.player;
+            } else {
+                // 履歴が1つしかない（AIが打つ前）場合は1つ戻すだけ
+                const prevState = history.pop();
+                board = prevState.board;
+                currentPlayer = prevState.player;
+            }
         } else {
-            const prevState = history.pop(); board = prevState.board; currentPlayer = prevState.player;
+            // 対人モードの場合：1つ戻す
+            const prevState = history.pop();
+            board = prevState.board;
+            currentPlayer = prevState.player;
         }
         render();
     }
 
     function backToHome() { gameStarted = false; showResetConfirm = false; render(); }
-    function confirmReset() { if (winner) resetGame(true); else { showResetConfirm = true; render(); } }
+    function confirmReset() { if (winner || isDraw) resetGame(true); else { showResetConfirm = true; render(); } }
     function cancelReset() { showResetConfirm = false; render(); }
     function resetGame(keepStarted = true) {
         board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
-        currentPlayer = PLAYER1; winner = null; winningCells = []; isAnimating = false; history = [];
+        currentPlayer = PLAYER1; winner = null; isDraw = false; winningCells = []; isAnimating = false; history = [];
         showResetConfirm = false; gameStarted = keepStarted; render();
     }
 
     function render() {
         const app = document.getElementById('app');
-        const canUndo = history.length > 0 && !winner && !isAnimating && !showResetConfirm;
+        const canUndo = history.length > 0 && !winner && !isDraw && !isAnimating && !showResetConfirm;
         let undoBtnStyle = canUndo ? "bg-white text-gray-700 btn-soft-shadow" : "bg-gray-100 text-gray-400 cursor-not-allowed";
 
         const gridHtml = board.map((row, rIdx) => 
@@ -382,22 +401,27 @@
                     </div>
                 ` : ''}
 
-                ${winner ? `
+                ${(winner || isDraw) ? `
                     <div class="fade-in" style="position: fixed; top: -10vh; bottom: -10vh; left: -10vw; right: -10vw; width: 120vw; height: 120vh; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); padding: 20px;">
                         <div style="text-align: center; color: white; margin-bottom: clamp(30px, 6vh, 60px);">
-                            <p style="font-size: var(--winner-label-size); font-weight: 800; letter-spacing: 0.3em; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">WINNER!</p>
+                            <p style="font-size: var(--winner-label-size); font-weight: 800; letter-spacing: 0.3em; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); text-transform: uppercase;">
+                                ${isDraw ? 'NO ONE WON' : 'WINNER!'}
+                            </p>
                             <h2 style="font-size: var(--winner-name-size); font-weight: 900; line-height: 0.9; letter-spacing: -0.04em;">
-                                <span style="color: ${winner === PLAYER1 ? '#ef4444' : '#fbbf24'}; text-shadow: 0 0 40px rgba(0,0,0,0.4);">${winner === PLAYER1 ? 'RED' : 'YELLOW'}</span>
+                                ${isDraw ? 
+                                    '<span style="color: #cbd5e1; text-shadow: 0 0 40px rgba(0,0,0,0.4);">DRAW</span>' : 
+                                    `<span style="color: ${winner === PLAYER1 ? '#ef4444' : '#fbbf24'}; text-shadow: 0 0 40px rgba(0,0,0,0.4);">${winner === PLAYER1 ? 'RED' : 'YELLOW'}</span>`
+                                }
                             </h2>
                         </div>
                         <div style="width: 100%; max-width: var(--modal-max-width); display: flex; flex-direction: column; gap: 16px;">
                             <button onclick="resetGame(true)" class="btn-soft-shadow" style="background: white; color: black; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 900; font-size: var(--modal-btn-text); border: none; cursor: pointer; width: 100%;">PLAY AGAIN</button>
-                            <button onclick="backToHome()" style="color: white; font-weight: 800; font-size: calc(var(--modal-btn-text) * 0.85); border: none; cursor: pointer; background: none; opacity: 1; letter-spacing: 0.05em; text-shadow: 0 1px 5px rgba(0,0,0,0.5);">MAIN MENU</button>
+                            <button onclick="backToHome()" style="background: rgba(255,255,255,0.2); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: 1px solid rgba(255,255,255,0.3); cursor: pointer; backdrop-filter: blur(8px);">MAIN MENU</button>
                         </div>
                     </div>
                 ` : ''}
 
-                <div id="game-container" style="display: ${gameStarted ? 'flex' : 'none'}; transition: all 0.4s ease; ${(winner || showResetConfirm) ? 'filter: blur(8px); transform: scale(0.98);' : ''}">
+                <div id="game-container" style="display: ${gameStarted ? 'flex' : 'none'}; transition: all 0.4s ease; ${(winner || isDraw || showResetConfirm) ? 'filter: blur(8px); transform: scale(0.98);' : ''}">
                     <div class="header-margin" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 4px;">
                         <h1 style="font-size: var(--title-size); font-weight: 900; color: #1e293b; letter-spacing: -0.03em; line-height: 1;">CONNECT 4</h1>
                         <div style="display: flex; gap: 10px;">
@@ -416,7 +440,7 @@
                             <span style="font-weight: 900; color: #64748b; font-size: var(--mode-text-size); letter-spacing: 0.1em;">
                                 ${(isAiMode && currentPlayer === PLAYER2) ? 'AI...' : 'NEXT'}
                             </span>
-                            <div style="width: var(--next-ui-size); height: var(--next-ui-size); border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.4s;" class="${!winner ? 'animate-pulse' : ''}"></div>
+                            <div style="width: var(--next-ui-size); height: var(--next-ui-size); border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.4s;" class="${(!winner && !isDraw) ? 'animate-pulse' : ''}"></div>
                         </div>
                     </div>
                 </div>
