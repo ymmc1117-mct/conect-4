@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="四目並べ">
     <title>四目並べ</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
+    <link rel="apple-touch-icon" href="icon512.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <style>
         :root {
@@ -58,13 +61,14 @@
 
     @media (orientation: landscape) {
         :root {
-            --board-max-width: clamp(320px, 65vh, 720px); 
-            --board-padding: clamp(8px, 2vh, 20px);
-            --footer-margin: clamp(12px, 3vh, 24px);
+            --board-max-width: clamp(420px, 75vh, 820px); 
+            --board-padding: clamp(10px, 2.5vh, 22px);
+            --footer-margin: clamp(10px, 2.5vh, 20px);
             --title-size: clamp(18px, 4vh, 32px);
+            --grid-gap: clamp(5px, 1.8vw, 12px);
         }
-        #main-wrapper { padding: 10px 20px !important; }
-        .header-margin { margin-bottom: clamp(10px, 3vh, 24px) !important; }
+        #main-wrapper { padding: 8px 20px !important; }
+        .header-margin { margin-bottom: clamp(8px, 2.5vh, 20px) !important; }
     }
 
     @media (max-width: 400px) {
@@ -167,6 +171,7 @@
 <body>
     <div id="app"></div>
 
+
 <script>
     const ROWS = 6;
     const COLS = 7;
@@ -240,7 +245,6 @@
     }
 
     function findBestMove(b) {
-        // 中央優先の列順
         const columnOrder = [3, 2, 4, 1, 5, 0, 6];
         
         // 1. AIの勝ち手を探す
@@ -267,45 +271,7 @@
             }
         }
         
-        // 3. 2手先の脅威を評価
-        for (const col of columnOrder) {
-            const row = getAvailableRow(b, col);
-            if (row !== -1) {
-                const testBoard = b.map(r => [...r]);
-                testBoard[row][col] = PLAYER2;
-                
-                // この手でプレイヤーに即勝ち手を与えないかチェック
-                let givesWin = false;
-                for (let c = 0; c < COLS; c++) {
-                    const r = getAvailableRow(testBoard, c);
-                    if (r !== -1) {
-                        const testBoard2 = testBoard.map(rr => [...rr]);
-                        testBoard2[r][c] = PLAYER1;
-                        if (checkWinner(testBoard2, r, c, PLAYER1)) {
-                            givesWin = true;
-                            break;
-                        }
-                    }
-                }
-                if (!givesWin) {
-                    // この手が安全で、かつ脅威を作るかチェック
-                    let threatCount = 0;
-                    for (let c = 0; c < COLS; c++) {
-                        const r = getAvailableRow(testBoard, c);
-                        if (r !== -1) {
-                            const testBoard2 = testBoard.map(rr => [...rr]);
-                            testBoard2[r][c] = PLAYER2;
-                            if (checkWinner(testBoard2, r, c, PLAYER2)) {
-                                threatCount++;
-                            }
-                        }
-                    }
-                    if (threatCount >= 2) return col; // 複数の勝ち筋を作る
-                }
-            }
-        }
-        
-        // 4. スコアリングで最良の手を選択
+        // 3. ミニマックスで最善手を探す
         let bestScore = -Infinity;
         let bestCol = -1;
         
@@ -315,22 +281,9 @@
                 const testBoard = b.map(r => [...r]);
                 testBoard[row][col] = PLAYER2;
                 
-                // この手がプレイヤーに即勝ち手を与えるかチェック
-                let givesWin = false;
-                for (let c = 0; c < COLS; c++) {
-                    const r = getAvailableRow(testBoard, c);
-                    if (r !== -1) {
-                        const testBoard2 = testBoard.map(rr => [...rr]);
-                        testBoard2[r][c] = PLAYER1;
-                        if (checkWinner(testBoard2, r, c, PLAYER1)) {
-                            givesWin = true;
-                            break;
-                        }
-                    }
-                }
-                
-                if (!givesWin) {
-                    const score = evaluatePosition(testBoard, row, col, PLAYER2);
+                // この手がプレイヤーに即勝ち手を与えないかチェック
+                if (!givesOpponentWin(testBoard, PLAYER1)) {
+                    const score = minimax(testBoard, 4, -Infinity, Infinity, false);
                     if (score > bestScore) {
                         bestScore = score;
                         bestCol = col;
@@ -339,59 +292,203 @@
             }
         }
         
-        // 5. 全ての手が危険な場合は中央を優先
+        // 全ての手が危険な場合は、最も安全な手を選ぶ
         if (bestCol === -1) {
+            let minThreat = Infinity;
             for (const col of columnOrder) {
-                if (getAvailableRow(b, col) !== -1) {
-                    return col;
+                const row = getAvailableRow(b, col);
+                if (row !== -1) {
+                    const testBoard = b.map(r => [...r]);
+                    testBoard[row][col] = PLAYER2;
+                    const threat = countOpponentThreats(testBoard, PLAYER1);
+                    if (threat < minThreat) {
+                        minThreat = threat;
+                        bestCol = col;
+                    }
                 }
             }
         }
         
-        return bestCol;
+        return bestCol !== -1 ? bestCol : 3;
     }
-
-    function evaluatePosition(b, row, col, player) {
+    
+    function minimax(b, depth, alpha, beta, isMaximizing) {
+        // 勝敗判定
+        const aiWin = checkBoardWinner(b, PLAYER2);
+        const playerWin = checkBoardWinner(b, PLAYER1);
+        
+        if (aiWin) return 10000;
+        if (playerWin) return -10000;
+        if (depth === 0 || isBoardFull(b)) return evaluateBoard(b);
+        
+        const columnOrder = [3, 2, 4, 1, 5, 0, 6];
+        
+        if (isMaximizing) {
+            let maxScore = -Infinity;
+            for (const col of columnOrder) {
+                const row = getAvailableRow(b, col);
+                if (row !== -1) {
+                    const testBoard = b.map(r => [...r]);
+                    testBoard[row][col] = PLAYER2;
+                    const score = minimax(testBoard, depth - 1, alpha, beta, false);
+                    maxScore = Math.max(maxScore, score);
+                    alpha = Math.max(alpha, score);
+                    if (beta <= alpha) break;
+                }
+            }
+            return maxScore;
+        } else {
+            let minScore = Infinity;
+            for (const col of columnOrder) {
+                const row = getAvailableRow(b, col);
+                if (row !== -1) {
+                    const testBoard = b.map(r => [...r]);
+                    testBoard[row][col] = PLAYER1;
+                    const score = minimax(testBoard, depth - 1, alpha, beta, true);
+                    minScore = Math.min(minScore, score);
+                    beta = Math.min(beta, score);
+                    if (beta <= alpha) break;
+                }
+            }
+            return minScore;
+        }
+    }
+    
+    function evaluateBoard(b) {
         let score = 0;
         
-        // 中央を優先
-        score += (3 - Math.abs(col - 3)) * 3;
+        // 中央列を重視
+        for (let r = 0; r < ROWS; r++) {
+            if (b[r][3] === PLAYER2) score += 3;
+            if (b[r][3] === PLAYER1) score -= 3;
+        }
         
-        // 3連のパターンを評価
-        const directions = [
-            [0, 1], [1, 0], [1, 1], [1, -1]
-        ];
+        // 全方向のパターンを評価
+        score += evaluateAllWindows(b, PLAYER2) - evaluateAllWindows(b, PLAYER1);
         
-        for (const [dr, dc] of directions) {
-            let count = 1;
-            let openEnds = 0;
-            
-            // 正方向
-            for (let i = 1; i < 4; i++) {
-                const r = row + dr * i;
-                const c = col + dc * i;
-                if (r < 0 || r >= ROWS || c < 0 || c >= COLS) break;
-                if (b[r][c] === player) count++;
-                else if (b[r][c] === 0) { openEnds++; break; }
-                else break;
+        return score;
+    }
+    
+    function evaluateAllWindows(b, player) {
+        let score = 0;
+        
+        // 横方向
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS - 3; c++) {
+                const window = [b[r][c], b[r][c+1], b[r][c+2], b[r][c+3]];
+                score += evaluateWindow(window, player);
             }
-            
-            // 負方向
-            for (let i = 1; i < 4; i++) {
-                const r = row - dr * i;
-                const c = col - dc * i;
-                if (r < 0 || r >= ROWS || c < 0 || c >= COLS) break;
-                if (b[r][c] === player) count++;
-                else if (b[r][c] === 0) { openEnds++; break; }
-                else break;
+        }
+        
+        // 縦方向
+        for (let c = 0; c < COLS; c++) {
+            for (let r = 0; r < ROWS - 3; r++) {
+                const window = [b[r][c], b[r+1][c], b[r+2][c], b[r+3][c]];
+                score += evaluateWindow(window, player);
             }
-            
-            if (count >= 3 && openEnds > 0) score += count * 10;
-            if (count === 2 && openEnds === 2) score += 5;
+        }
+        
+        // 右斜め下
+        for (let r = 0; r < ROWS - 3; r++) {
+            for (let c = 0; c < COLS - 3; c++) {
+                const window = [b[r][c], b[r+1][c+1], b[r+2][c+2], b[r+3][c+3]];
+                score += evaluateWindow(window, player);
+            }
+        }
+        
+        // 左斜め下
+        for (let r = 0; r < ROWS - 3; r++) {
+            for (let c = 3; c < COLS; c++) {
+                const window = [b[r][c], b[r+1][c-1], b[r+2][c-2], b[r+3][c-3]];
+                score += evaluateWindow(window, player);
+            }
         }
         
         return score;
     }
+    
+    function evaluateWindow(window, player) {
+        let score = 0;
+        const opponent = player === PLAYER1 ? PLAYER2 : PLAYER1;
+        
+        const playerCount = window.filter(c => c === player).length;
+        const opponentCount = window.filter(c => c === opponent).length;
+        const emptyCount = window.filter(c => c === 0).length;
+        
+        if (playerCount === 4) score += 100;
+        else if (playerCount === 3 && emptyCount === 1) score += 10;
+        else if (playerCount === 2 && emptyCount === 2) score += 5;
+        
+        if (opponentCount === 3 && emptyCount === 1) score -= 80;
+        
+        return score;
+    }
+    
+    function checkBoardWinner(b, player) {
+        // 横方向
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS - 3; c++) {
+                if (b[r][c] === player && b[r][c+1] === player && 
+                    b[r][c+2] === player && b[r][c+3] === player) return true;
+            }
+        }
+        
+        // 縦方向
+        for (let c = 0; c < COLS; c++) {
+            for (let r = 0; r < ROWS - 3; r++) {
+                if (b[r][c] === player && b[r+1][c] === player && 
+                    b[r+2][c] === player && b[r+3][c] === player) return true;
+            }
+        }
+        
+        // 斜め
+        for (let r = 0; r < ROWS - 3; r++) {
+            for (let c = 0; c < COLS - 3; c++) {
+                if (b[r][c] === player && b[r+1][c+1] === player && 
+                    b[r+2][c+2] === player && b[r+3][c+3] === player) return true;
+            }
+        }
+        
+        for (let r = 0; r < ROWS - 3; r++) {
+            for (let c = 3; c < COLS; c++) {
+                if (b[r][c] === player && b[r+1][c-1] === player && 
+                    b[r+2][c-2] === player && b[r+3][c-3] === player) return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    function givesOpponentWin(b, opponent) {
+        for (let c = 0; c < COLS; c++) {
+            const r = getAvailableRow(b, c);
+            if (r !== -1) {
+                const testBoard = b.map(row => [...row]);
+                testBoard[r][c] = opponent;
+                if (checkBoardWinner(testBoard, opponent)) return true;
+            }
+        }
+        return false;
+    }
+    
+    function countOpponentThreats(b, opponent) {
+        let threats = 0;
+        for (let c = 0; c < COLS; c++) {
+            const r = getAvailableRow(b, c);
+            if (r !== -1) {
+                const testBoard = b.map(row => [...row]);
+                testBoard[r][c] = opponent;
+                if (checkBoardWinner(testBoard, opponent)) threats++;
+            }
+        }
+        return threats;
+    }
+    
+    function isBoardFull(b) {
+        return b[0].every(cell => cell !== 0);
+    }
+
+
 
     function getAvailableRow(b, c) { 
         for (let r = ROWS-1; r >= 0; r--) { 
@@ -578,6 +675,7 @@
 
     render();
 </script>
+
 
 </body>
 </html>
