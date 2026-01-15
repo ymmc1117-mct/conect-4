@@ -13,65 +13,62 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <style>
         :root {
-            /* 基本設定 */
-            --board-max-width: 500px;
-            --board-padding: 12px;
-            --grid-gap: 6px;
+            /* ボード最大幅を拡大 */
+            --board-max-width: 560px;
+            --board-padding: 14px;
+            --grid-gap: clamp(4px, 1.5vw, 10px);
             --piece-scale: 0.92;
             --shared-soft-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
             
-            /* タイトル：最小値を下げ、改行を防ぐ */
-            --title-size: clamp(16px, 5.5vw, 28px);
-            --btn-text: clamp(10px, 3vw, 12px);
+            /* UIサイズ */
+            --title-size: clamp(18px, 6vw, 28px);
+            --btn-text: clamp(11px, 3vw, 13px);
             --btn-padding: 8px 16px;
-            --next-ui-size: 28px;
+            --next-ui-size: 30px;
 
-            /* ダイアログ：レスポンシブサイズ */
-            --modal-width: 85vw;
-            --modal-max-width: 300px;
-            --modal-title: 20px;
+            /* ダイアログ */
+            --modal-width: 90vw;
+            --modal-max-width: 320px;
+            --modal-title: 22px;
             --modal-btn-padding: 14px;
         }
 
-        /* 小さなデバイス */
-        @media (max-width: 375px) {
+        /* 小さなデバイス: 画面端ギリギリまで広げる */
+        @media (max-width: 400px) {
             :root { 
-                --board-max-width: 310px; 
-                --grid-gap: 4px; 
+                --board-max-width: 380px; 
                 --board-padding: 8px;
-                --next-ui-size: 24px;
+                --next-ui-size: 26px;
             }
+            #main-wrapper { padding: 12px 8px !important; }
         }
 
-        /* 大きな画面 (タブレット・PC) */
+        /* 大きな画面: ボードをよりダイナミックに表示 */
         @media (min-width: 768px) {
             :root { 
-                --board-max-width: 600px; 
-                --board-padding: 20px; 
-                --grid-gap: 10px;
-                --title-size: 36px;
-                --btn-text: 14px;
-                --btn-padding: 10px 24px;
-                --next-ui-size: 36px;
+                --board-max-width: 720px; 
+                --board-padding: 24px; 
+                --title-size: 38px;
+                --btn-text: 15px;
+                --btn-padding: 12px 28px;
+                --next-ui-size: 40px;
 
-                /* ダイアログを大きく */
-                --modal-max-width: 420px;
-                --modal-title: 28px;
-                --modal-btn-padding: 18px;
+                --modal-max-width: 440px;
+                --modal-title: 32px;
+                --modal-btn-padding: 20px;
             }
         }
 
-        /* 横向き画面 */
+        /* 横向き画面でのレイアウト最適化 */
         @media (orientation: landscape) and (max-height: 500px) {
             :root { 
-                --board-max-width: 320px; 
-                --board-padding: 8px; 
-                --grid-gap: 4px;
+                --board-max-width: 420px; 
+                --board-padding: 6px; 
                 --title-size: 18px;
             }
-            #main-wrapper { padding: 8px !important; }
-            .header-margin { margin-bottom: 10px !important; }
-            .footer-margin { margin-top: 12px !important; }
+            #main-wrapper { padding: 4px 10px !important; }
+            .header-margin { margin-bottom: 8px !important; }
+            .footer-margin { margin-top: 10px !important; }
         }
 
         * { -webkit-tap-highlight-color: transparent; }
@@ -81,11 +78,17 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        #game-container { width: 95vw; max-width: var(--board-max-width); margin: 0 auto; }
+        #game-container { 
+            width: 100%; 
+            max-width: var(--board-max-width); 
+            margin: 0 auto; 
+            display: flex;
+            flex-direction: column;
+        }
 
         .board-bg {
             background: #0a2291;
-            border-radius: clamp(12px, 4vw, 24px);
+            border-radius: clamp(16px, 4vw, 32px);
             padding: var(--board-padding);
             box-shadow: 0 15px 40px -10px rgba(0,0,0,0.08);
             display: grid;
@@ -237,10 +240,10 @@
                 ${showResetConfirm ? `
                     <div class="fade-in" style="position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); text-align: center; padding: 20px;">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width);">
-                            <h3 style="font-size: var(--modal-title); font-weight: 800; color: white; margin-bottom: 24px; letter-spacing: 0.02em;">Reset Game?</h3>
-                            <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+                            <h3 style="font-size: var(--modal-title); font-weight: 800; color: white; margin-bottom: 32px; letter-spacing: 0.02em;">Reset Game?</h3>
+                            <div style="display: flex; flex-direction: column; gap: 16px; align-items: center;">
                                 <button onclick="resetGame()" class="btn-soft-shadow" style="background: white; color: #ef4444; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 900; font-size: calc(var(--modal-title) * 0.7); border: none; cursor: pointer;">RESET NOW</button>
-                                <button onclick="cancelReset()" style="color: white; font-weight: 600; font-size: 15px; border: none; cursor: pointer; background: none; opacity: 0.8; margin-top: 4px;">CANCEL</button>
+                                <button onclick="cancelReset()" style="color: white; font-weight: 600; font-size: 16px; border: none; cursor: pointer; background: none; opacity: 0.8; margin-top: 8px;">CANCEL</button>
                             </div>
                         </div>
                     </div>
@@ -251,16 +254,16 @@
                         <div></div>
                         <div style="text-align: center; color: white;">
                             <p style="font-size: 18px; font-weight: 500; letter-spacing: 0.2em; margin-bottom: 8px; opacity: 0.8;">WINNER!</p>
-                            <h2 style="font-size: clamp(40px, 15vw, 72px); font-weight: 900; line-height: 1;">
+                            <h2 style="font-size: clamp(48px, 15vw, 84px); font-weight: 900; line-height: 1;">
                                 <span style="color: ${winner === PLAYER1 ? '#ef4444' : '#fbbf24'};">${winner === PLAYER1 ? 'RED' : 'YELLOW'}</span>
                             </h2>
                         </div>
-                        <button onclick="resetGame()" class="btn-soft-shadow" style="background: white; color: black; padding: 18px 0; border-radius: 100px; font-weight: 900; font-size: 18px; border: none; cursor: pointer; width: 100%; max-width: 280px;">PLAY AGAIN</button>
+                        <button onclick="resetGame()" class="btn-soft-shadow" style="background: white; color: black; padding: 20px 0; border-radius: 100px; font-weight: 900; font-size: 20px; border: none; cursor: pointer; width: 100%; max-width: 320px;">PLAY AGAIN</button>
                     </div>
                 ` : ''}
 
-                <div id="game-container" style="transition: all 0.4s; ${(winner || showResetConfirm) ? 'opacity: 0.3; filter: blur(4px); transform: scale(0.97);' : ''}">
-                    <div class="header-margin" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 4px;">
+                <div id="game-container" style="transition: all 0.4s; ${(winner || showResetConfirm) ? 'opacity: 0.3; filter: blur(4px); transform: scale(0.98);' : ''}">
+                    <div class="header-margin" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 4px;">
                         <h1 style="font-size: var(--title-size); font-weight: 900; color: #1e293b; letter-spacing: -0.02em; white-space: nowrap;">CONNECT 4</h1>
                         <div style="display: flex; gap: 8px;">
                             <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="flex items-center rounded-full font-black transition-all ${undoBtnStyle}" style="padding: var(--btn-padding); font-size: var(--btn-text);">
@@ -276,7 +279,7 @@
                         ${gridHtml}
                     </div>
 
-                    <div class="footer-margin" style="margin-top: 24px; display: flex; justify-content: center; align-items: center; gap: 12px;">
+                    <div class="footer-margin" style="margin-top: 32px; display: flex; justify-content: center; align-items: center; gap: 14px;">
                         <span style="font-weight: 900; color: #64748b; font-size: calc(var(--btn-text) + 2px); letter-spacing: 0.1em;">NEXT</span>
                         <div style="width: var(--next-ui-size); height: var(--next-ui-size); border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: all 0.3s;" class="${!winner ? 'animate-pulse' : ''}"></div>
                     </div>
