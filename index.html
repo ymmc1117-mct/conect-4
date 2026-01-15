@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -6,9 +7,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="四目並べ">
-    <link rel="apple-touch-icon" href="icon512.png">
-    <link rel="icon" type="image/png" href="icon512.png">
-    <link rel="manifest" href="manifest.json">
     <title>四目並べ</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <style>
@@ -19,113 +17,161 @@
             --grid-gap: clamp(4px, 1.5vw, 10px);
             --piece-scale: 0.92;
             --shared-soft-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+
+
+        --title-size: clamp(20px, 6vw, 28px);
+        --btn-text: clamp(12px, 3vw, 14px);
+        --btn-padding: 10px 18px;
+        --mode-text-size: clamp(12px, 3vw, 16px);
+        --next-ui-size: 32px;
+        --footer-margin: 32px;
+
+        --modal-width: 92vw;
+        --modal-max-width: 360px;
+        --modal-title: 26px;
+        --modal-btn-text: 18px;
+        --modal-btn-padding: 18px;
+
+        --winner-label-size: 20px;
+        --winner-name-size: clamp(54px, 18vw, 90px);
+    }
+
+    @media (min-width: 768px) {
+        :root { 
+            --board-max-width: 720px; 
+            --board-padding: 24px; 
+            --title-size: 40px;
+            --btn-text: 18px; 
+            --btn-padding: 14px 30px; 
+            --mode-text-size: 20px; 
+            --next-ui-size: 44px;
+            --footer-margin: 40px;
             
-            --title-size: clamp(20px, 6vw, 28px);
-            --btn-text: clamp(12px, 3vw, 14px);
-            --btn-padding: 10px 18px;
-            --mode-text-size: clamp(12px, 3vw, 16px);
-            --next-ui-size: 32px;
-            --footer-margin: 32px;
-
-            --modal-width: 92vw;
-            --modal-max-width: 360px;
-            --modal-title: 26px;
-            --modal-btn-text: 18px;
-            --modal-btn-padding: 18px;
-
-            --winner-label-size: 20px;
-            --winner-name-size: clamp(54px, 18vw, 90px);
+            --modal-max-width: 500px; 
+            --modal-title: 44px; 
+            --modal-btn-text: 22px;
+            --modal-btn-padding: 24px;
+            --winner-label-size: 30px;
+            --winner-name-size: 110px; 
         }
+    }
 
-        /* 大きな画面（PC・タブレット） */
-        @media (min-width: 768px) {
-            :root { 
-                --board-max-width: 720px; 
-                --board-padding: 24px; 
-                --title-size: 40px;
-                --btn-text: 18px; 
-                --btn-padding: 14px 30px; 
-                --mode-text-size: 20px; 
-                --next-ui-size: 44px;
-                --footer-margin: 40px;
-                
-                --modal-max-width: 500px; 
-                --modal-title: 44px; 
-                --modal-btn-text: 22px;
-                --modal-btn-padding: 24px;
-                --winner-label-size: 30px;
-                --winner-name-size: 110px; 
-            }
+    @media (orientation: landscape) {
+        :root {
+            --board-max-width: clamp(320px, 65vh, 720px); 
+            --board-padding: clamp(8px, 2vh, 20px);
+            --footer-margin: clamp(12px, 3vh, 24px);
+            --title-size: clamp(18px, 4vh, 32px);
         }
+        #main-wrapper { padding: 10px 20px !important; }
+        .header-margin { margin-bottom: clamp(10px, 3vh, 24px) !important; }
+    }
 
-        /* 横向きレイアウトの最適化（スクロール防止） */
-        @media (orientation: landscape) {
-            :root {
-                /* ボードの高さを画面の高さ(vh)に依存させる */
-                --board-max-width: clamp(320px, 65vh, 720px); 
-                --board-padding: clamp(8px, 2vh, 20px);
-                --footer-margin: clamp(12px, 3vh, 24px);
-                --title-size: clamp(18px, 4vh, 32px);
-            }
-            #main-wrapper { padding: 10px 20px !important; }
-            .header-margin { margin-bottom: clamp(10px, 3vh, 24px) !important; }
-        }
+    @media (max-width: 400px) {
+        :root { --board-max-width: 380px; --board-padding: 8px; --next-ui-size: 28px; }
+        #main-wrapper { padding: 12px 8px !important; }
+    }
 
-        /* 小さなスマホ */
-        @media (max-width: 400px) {
-            :root { --board-max-width: 380px; --board-padding: 8px; --next-ui-size: 28px; }
-            #main-wrapper { padding: 12px 8px !important; }
-        }
+    * { 
+        -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
+    }
+    
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+    }
+    
+    body { 
+        overscroll-behavior: none; 
+        background-color: #f8fafc; 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
 
-        * { -webkit-tap-highlight-color: transparent; }
-        body { 
-            overscroll-behavior: none; 
-            background-color: #f8fafc; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            height: 100vh;
-            width: 100vw;
-        }
+    #game-container { width: 100%; max-width: var(--board-max-width); margin: 0 auto; display: flex; flex-direction: column; }
+    
+    .board-bg {
+        background: var(--brand-blue);
+        border-radius: clamp(16px, 3vh, 36px);
+        padding: var(--board-padding);
+        box-shadow: 0 15px 40px -10px rgba(0,0,0,0.12);
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: var(--grid-gap);
+    }
 
-        #game-container { width: 100%; max-width: var(--board-max-width); margin: 0 auto; display: flex; flex-direction: column; }
-        .board-bg {
-            background: var(--brand-blue);
-            border-radius: clamp(16px, 3vh, 36px);
-            padding: var(--board-padding);
-            box-shadow: 0 15px 40px -10px rgba(0,0,0,0.12);
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: var(--grid-gap);
-        }
+    .cell-container { 
+        position: relative; 
+        width: 100%; 
+        aspect-ratio: 1 / 1; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+    }
+    
+    .cell-content { 
+        width: calc(100% * var(--piece-scale)); 
+        height: calc(100% * var(--piece-scale)); 
+        border-radius: 50%; 
+        position: absolute; 
+    }
 
-        .cell-container { position: relative; width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; }
-        .cell-content { width: calc(100% * var(--piece-scale)); height: calc(100% * var(--piece-scale)); border-radius: 50%; position: absolute; }
+    @keyframes drop { 
+        0% { transform: translateY(-100vh); opacity: 0; } 
+        100% { transform: translateY(0); opacity: 1; } 
+    }
+    .drop-animation { animation: drop 0.45s cubic-bezier(0.2, 0.5, 0.3, 1); }
+    
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.6); transform: scale(0.95); border: 4px solid white; }
+        50% { box-shadow: 0 0 35px 12px rgba(255, 255, 255, 0.8); transform: scale(1.03); border: 4px solid white; }
+    }
+    .win-glow { animation: pulse-glow 1.5s ease-in-out infinite; z-index: 10; }
 
-        @keyframes drop { 0% { transform: translateY(-100vh); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-        .drop-animation { animation: drop 0.45s cubic-bezier(0.2, 0.5, 0.3, 1); }
-        
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.6); transform: scale(0.95); border: 4px solid white; }
-            50% { box-shadow: 0 0 35px 12px rgba(255, 255, 255, 0.8); transform: scale(1.03); border: 4px solid white; }
-        }
-        .win-glow { animation: pulse-glow 1.5s ease-in-out infinite; z-index: 10; }
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(15px); } }
+    .pop-up { animation: popUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes popUp { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-        .pop-up { animation: popUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes popUp { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .undo-badge { 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; 
+        width: 1.5em; 
+        height: 1.5em; 
+        border-radius: 50%; 
+        font-size: 0.8em; 
+        margin-left: 0.6em; 
+    }
+    
+    .btn-soft-shadow { box-shadow: var(--shared-soft-shadow); }
+    
+    button {
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    button:active:not(:disabled) {
+        transform: scale(0.95);
+    }
+</style>
 
-        .undo-badge { display: inline-flex; align-items: center; justify-content: center; width: 1.5em; height: 1.5em; border-radius: 50%; font-size: 0.8em; margin-left: 0.6em; }
-        .btn-soft-shadow { box-shadow: var(--shared-soft-shadow); }
-    </style>
+
 </head>
-<body class="m-0 p-0 overflow-hidden">
+<body>
     <div id="app"></div>
 
 <script>
-    const ROWS = 6; const COLS = 7;
-    const PLAYER1 = 1; const PLAYER2 = 2;
-    const MAX_UNDO = 3;
+    const ROWS = 6;
+    const COLS = 7;
+    const PLAYER1 = 1;
+    const PLAYER2 = 2;
 
     let board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
     let currentPlayer = PLAYER1;
@@ -133,12 +179,15 @@
     let winningCells = [];
     let isAnimating = false;
     let history = []; 
-    let undoCount = { [PLAYER1]: MAX_UNDO, [PLAYER2]: MAX_UNDO };
     let gameStarted = false;
     let isAiMode = true;
     let showResetConfirm = false;
 
-    function startGame(vsAi) { isAiMode = vsAi; gameStarted = true; resetGame(true); }
+    function startGame(vsAi) { 
+        isAiMode = vsAi; 
+        gameStarted = true; 
+        resetGame(true); 
+    }
 
     function dropPiece(col) {
         if (!gameStarted || winner || isAnimating || showResetConfirm) return;
@@ -150,22 +199,30 @@
         for (let row = ROWS - 1; row >= 0; row--) {
             if (board[row][col] === 0) {
                 isAnimating = true;
-                history.push({ board: board.map(r => [...r]), player: currentPlayer });
+                history.push({ 
+                    board: board.map(r => [...r]), 
+                    player: currentPlayer
+                });
                 board[row][col] = currentPlayer;
                 const activePlayer = currentPlayer;
                 render(); 
+                
                 const piece = document.querySelector(`[data-piece-row="${row}"][data-piece-col="${col}"] .cell-piece`);
                 if (piece) piece.classList.add('drop-animation');
 
                 setTimeout(() => {
                     const winCells = checkWinner(board, row, col, activePlayer);
                     if (winCells) {
-                        winner = activePlayer; winningCells = winCells;
+                        winner = activePlayer; 
+                        winningCells = winCells;
                     } else {
                         currentPlayer = activePlayer === PLAYER1 ? PLAYER2 : PLAYER1;
-                        if (isAiMode && currentPlayer === PLAYER2) setTimeout(makeAiMove, 650);
+                        if (isAiMode && currentPlayer === PLAYER2 && !winner) {
+                            setTimeout(makeAiMove, 650);
+                        }
                     }
-                    isAnimating = false; render();
+                    isAnimating = false; 
+                    render();
                 }, 450);
                 return true;
             }
@@ -174,31 +231,191 @@
     }
 
     function makeAiMove() {
-        if (winner || !isAiMode) return;
-        const centerFirst = [3, 2, 4, 1, 5, 0, 6];
-        for (const player of [PLAYER2, PLAYER1]) {
-            for (const c of centerFirst) {
-                let r = getAvailableRow(board, c);
-                if (r !== -1) {
-                    board[r][c] = player;
-                    if (checkWinner(board, r, c, player)) { board[r][c] = 0; executeMove(c); return; }
-                    board[r][c] = 0;
+        if (winner || !isAiMode || currentPlayer !== PLAYER2) return;
+        
+        const bestMove = findBestMove(board);
+        if (bestMove !== -1) {
+            executeMove(bestMove);
+        }
+    }
+
+    function findBestMove(b) {
+        // 中央優先の列順
+        const columnOrder = [3, 2, 4, 1, 5, 0, 6];
+        
+        // 1. AIの勝ち手を探す
+        for (const col of columnOrder) {
+            const row = getAvailableRow(b, col);
+            if (row !== -1) {
+                const testBoard = b.map(r => [...r]);
+                testBoard[row][col] = PLAYER2;
+                if (checkWinner(testBoard, row, col, PLAYER2)) {
+                    return col;
                 }
             }
         }
-        for (const c of centerFirst) { if (getAvailableRow(board, c) !== -1) { executeMove(c); return; } }
+        
+        // 2. プレイヤーの勝ち手をブロック
+        for (const col of columnOrder) {
+            const row = getAvailableRow(b, col);
+            if (row !== -1) {
+                const testBoard = b.map(r => [...r]);
+                testBoard[row][col] = PLAYER1;
+                if (checkWinner(testBoard, row, col, PLAYER1)) {
+                    return col;
+                }
+            }
+        }
+        
+        // 3. 2手先の脅威を評価
+        for (const col of columnOrder) {
+            const row = getAvailableRow(b, col);
+            if (row !== -1) {
+                const testBoard = b.map(r => [...r]);
+                testBoard[row][col] = PLAYER2;
+                
+                // この手でプレイヤーに即勝ち手を与えないかチェック
+                let givesWin = false;
+                for (let c = 0; c < COLS; c++) {
+                    const r = getAvailableRow(testBoard, c);
+                    if (r !== -1) {
+                        const testBoard2 = testBoard.map(rr => [...rr]);
+                        testBoard2[r][c] = PLAYER1;
+                        if (checkWinner(testBoard2, r, c, PLAYER1)) {
+                            givesWin = true;
+                            break;
+                        }
+                    }
+                }
+                if (!givesWin) {
+                    // この手が安全で、かつ脅威を作るかチェック
+                    let threatCount = 0;
+                    for (let c = 0; c < COLS; c++) {
+                        const r = getAvailableRow(testBoard, c);
+                        if (r !== -1) {
+                            const testBoard2 = testBoard.map(rr => [...rr]);
+                            testBoard2[r][c] = PLAYER2;
+                            if (checkWinner(testBoard2, r, c, PLAYER2)) {
+                                threatCount++;
+                            }
+                        }
+                    }
+                    if (threatCount >= 2) return col; // 複数の勝ち筋を作る
+                }
+            }
+        }
+        
+        // 4. スコアリングで最良の手を選択
+        let bestScore = -Infinity;
+        let bestCol = -1;
+        
+        for (const col of columnOrder) {
+            const row = getAvailableRow(b, col);
+            if (row !== -1) {
+                const testBoard = b.map(r => [...r]);
+                testBoard[row][col] = PLAYER2;
+                
+                // この手がプレイヤーに即勝ち手を与えるかチェック
+                let givesWin = false;
+                for (let c = 0; c < COLS; c++) {
+                    const r = getAvailableRow(testBoard, c);
+                    if (r !== -1) {
+                        const testBoard2 = testBoard.map(rr => [...rr]);
+                        testBoard2[r][c] = PLAYER1;
+                        if (checkWinner(testBoard2, r, c, PLAYER1)) {
+                            givesWin = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!givesWin) {
+                    const score = evaluatePosition(testBoard, row, col, PLAYER2);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestCol = col;
+                    }
+                }
+            }
+        }
+        
+        // 5. 全ての手が危険な場合は中央を優先
+        if (bestCol === -1) {
+            for (const col of columnOrder) {
+                if (getAvailableRow(b, col) !== -1) {
+                    return col;
+                }
+            }
+        }
+        
+        return bestCol;
     }
 
-    function getAvailableRow(b, c) { for (let r = ROWS-1; r >= 0; r--) { if (b[r][c] === 0) return r; } return -1; }
+    function evaluatePosition(b, row, col, player) {
+        let score = 0;
+        
+        // 中央を優先
+        score += (3 - Math.abs(col - 3)) * 3;
+        
+        // 3連のパターンを評価
+        const directions = [
+            [0, 1], [1, 0], [1, 1], [1, -1]
+        ];
+        
+        for (const [dr, dc] of directions) {
+            let count = 1;
+            let openEnds = 0;
+            
+            // 正方向
+            for (let i = 1; i < 4; i++) {
+                const r = row + dr * i;
+                const c = col + dc * i;
+                if (r < 0 || r >= ROWS || c < 0 || c >= COLS) break;
+                if (b[r][c] === player) count++;
+                else if (b[r][c] === 0) { openEnds++; break; }
+                else break;
+            }
+            
+            // 負方向
+            for (let i = 1; i < 4; i++) {
+                const r = row - dr * i;
+                const c = col - dc * i;
+                if (r < 0 || r >= ROWS || c < 0 || c >= COLS) break;
+                if (b[r][c] === player) count++;
+                else if (b[r][c] === 0) { openEnds++; break; }
+                else break;
+            }
+            
+            if (count >= 3 && openEnds > 0) score += count * 10;
+            if (count === 2 && openEnds === 2) score += 5;
+        }
+        
+        return score;
+    }
+
+    function getAvailableRow(b, c) { 
+        for (let r = ROWS-1; r >= 0; r--) { 
+            if (b[r][c] === 0) return r; 
+        } 
+        return -1; 
+    }
 
     function checkWinner(targetBoard, row, col, player) {
-        const directions = [[[0, 1], [0, -1]], [[1, 0], [-1, 0]], [[1, 1], [-1, -1]], [[1, -1], [-1, 1]]];
+        const directions = [
+            [[0, 1], [0, -1]], 
+            [[1, 0], [-1, 0]], 
+            [[1, 1], [-1, -1]], 
+            [[1, -1], [-1, 1]]
+        ];
+        
         for (const [dir1, dir2] of directions) {
             const cells = [[row, col]];
             for (const [dr, dc] of [dir1, dir2]) {
                 let r = row + dr, c = col + dc;
                 while (r >= 0 && r < ROWS && c >= 0 && c < COLS && targetBoard[r][c] === player) {
-                    cells.push([r, c]); r += dr; c += dc;
+                    cells.push([r, c]); 
+                    r += dr; 
+                    c += dc;
                 }
             }
             if (cells.length >= 4) return cells;
@@ -208,37 +425,60 @@
 
     function undoMove() {
         if (history.length === 0 || isAnimating || winner || showResetConfirm) return;
+        
         if (isAiMode && history.length >= 2) {
-            history.pop(); history.pop();
-            board = history.length > 0 ? history[history.length-1].board.map(r=>[...r]) : Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
-            if (history.length === 0) board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
-            currentPlayer = PLAYER1; undoCount[PLAYER1]--;
+            history.pop();
+            history.pop();
+            
+            board = history.length > 0 
+                ? history[history.length-1].board.map(r=>[...r]) 
+                : Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+            
+            currentPlayer = PLAYER1;
         } else {
-            const lastState = history.pop();
-            if (undoCount[lastState.player] <= 0) { history.push(lastState); return; }
-            board = lastState.board; currentPlayer = lastState.player; undoCount[lastState.player]--;
+            const prevState = history.pop();
+            board = prevState.board;
+            currentPlayer = prevState.player;
         }
+        
         render();
     }
 
-    function backToHome() { gameStarted = false; showResetConfirm = false; render(); }
-    function confirmReset() { if (winner) resetGame(true); else { showResetConfirm = true; render(); } }
-    function cancelReset() { showResetConfirm = false; render(); }
+    function backToHome() { 
+        gameStarted = false; 
+        showResetConfirm = false; 
+        render(); 
+    }
+    
+    function confirmReset() { 
+        if (winner) {
+            resetGame(true);
+        } else { 
+            showResetConfirm = true; 
+            render(); 
+        } 
+    }
+    
+    function cancelReset() { 
+        showResetConfirm = false; 
+        render(); 
+    }
     
     function resetGame(keepStarted = true) {
         board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
-        currentPlayer = PLAYER1; winner = null; winningCells = [];
-        isAnimating = false; history = [];
-        undoCount = { [PLAYER1]: MAX_UNDO, [PLAYER2]: MAX_UNDO };
-        showResetConfirm = false; gameStarted = keepStarted;
+        currentPlayer = PLAYER1;
+        winner = null;
+        winningCells = [];
+        isAnimating = false;
+        history = [];
+        showResetConfirm = false;
+        gameStarted = keepStarted;
         render();
     }
 
     function render() {
         const app = document.getElementById('app');
-        const lastMovePlayer = history.length > 0 ? history[history.length - 1].player : null;
-        const remainingUndo = isAiMode ? undoCount[PLAYER1] : (lastMovePlayer ? undoCount[lastMovePlayer] : 0);
-        const canUndo = history.length > 0 && !winner && !isAnimating && !showResetConfirm && remainingUndo > 0;
+        const canUndo = history.length > 0 && !winner && !isAnimating && !showResetConfirm;
         
         let undoBtnStyle = "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none";
         if (canUndo) undoBtnStyle = "bg-white text-gray-700 btn-soft-shadow active:scale-95";
@@ -261,7 +501,7 @@
         ).join('');
 
         app.innerHTML = `
-            <div id="main-wrapper" style="height: 100dvh; width: 100vw; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; user-select: none; overflow: hidden;">
+            <div id="main-wrapper" style="height: 100vh; width: 100vw; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; user-select: none; overflow: hidden;">
                 
                 ${!gameStarted ? `
                     <div class="fade-in" style="position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; text-align: center; padding: 20px;">
@@ -310,7 +550,7 @@
                         <h1 style="font-size: var(--title-size); font-weight: 900; color: #1e293b; letter-spacing: -0.03em; line-height: 1;">CONNECT 4</h1>
                         <div style="display: flex; gap: 10px;">
                             <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="flex items-center rounded-full font-black transition-all ${undoBtnStyle}" style="padding: var(--btn-padding); font-size: var(--btn-text);">
-                                UNDO <span class="undo-badge" style="background: rgba(0,0,0,0.08)">${remainingUndo}</span>
+                                UNDO
                             </button>
                             <button onclick="confirmReset()" class="bg-white text-gray-500 border border-gray-100 rounded-full font-black hover:bg-gray-50 transition-all btn-soft-shadow active:scale-95" style="padding: var(--btn-padding); font-size: var(--btn-text);">
                                 RESET
@@ -337,7 +577,7 @@
     }
 
     render();
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(() => {}); }
 </script>
+
 </body>
 </html>
