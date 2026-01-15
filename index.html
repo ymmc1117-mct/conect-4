@@ -7,9 +7,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="四目並べ">
     <title>四目並べ</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
-    <link rel="apple-touch-icon" href="icon512.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <style>
         :root {
@@ -19,114 +16,58 @@
             --grid-gap: clamp(4px, 1.5vw, 10px);
             --piece-scale: 0.92;
             --shared-soft-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
-
             --title-size: clamp(20px, 6vw, 28px);
             --btn-text: clamp(12px, 3vw, 14px);
             --btn-padding: 10px 18px;
             --mode-text-size: clamp(12px, 3vw, 16px);
             --next-ui-size: 32px;
             --footer-margin: 32px;
-
             --modal-width: 92vw;
             --modal-max-width: 360px;
             --modal-title: 26px;
             --modal-btn-text: 18px;
             --modal-btn-padding: 18px;
-
             --winner-label-size: 20px;
             --winner-name-size: clamp(54px, 18vw, 90px);
         }
 
         @media (min-width: 768px) {
             :root { 
-                --board-max-width: 720px; 
-                --board-padding: 24px; 
-                --title-size: 40px;
-                --btn-text: 18px; 
-                --btn-padding: 14px 30px; 
-                --mode-text-size: 20px; 
-                --next-ui-size: 44px;
-                --footer-margin: 40px;
-                
-                --modal-max-width: 500px; 
-                --modal-title: 44px; 
-                --modal-btn-text: 22px;
-                --modal-btn-padding: 24px;
-                --winner-label-size: 30px;
-                --winner-name-size: 110px; 
+                --board-max-width: 720px; --board-padding: 24px; --title-size: 40px;
+                --btn-text: 18px; --btn-padding: 14px 30px; --mode-text-size: 20px; 
+                --next-ui-size: 44px; --footer-margin: 40px; --modal-max-width: 500px; 
+                --modal-title: 44px; --modal-btn-text: 22px; --modal-btn-padding: 24px;
+                --winner-label-size: 30px; --winner-name-size: 110px; 
             }
         }
 
         @media (orientation: landscape) {
             :root {
-                --board-max-width: clamp(420px, 75vh, 820px); 
-                --board-padding: clamp(10px, 2.5vh, 22px);
-                --footer-margin: clamp(10px, 2.5vh, 20px);
-                --title-size: clamp(18px, 4vh, 32px);
+                --board-max-width: clamp(420px, 75vh, 820px); --board-padding: clamp(10px, 2.5vh, 22px);
+                --footer-margin: clamp(10px, 2.5vh, 20px); --title-size: clamp(18px, 4vh, 32px);
                 --grid-gap: clamp(5px, 1.8vw, 12px);
             }
             #main-wrapper { padding: 8px 20px !important; }
             .header-margin { margin-bottom: clamp(8px, 2.5vh, 20px) !important; }
         }
 
-        @media (max-width: 400px) {
-            :root { --board-max-width: 380px; --board-padding: 8px; --next-ui-size: 28px; }
-            #main-wrapper { padding: 12px 8px !important; }
-        }
-
-        * { 
-            -webkit-tap-highlight-color: transparent;
-            box-sizing: border-box;
-        }
-        
-        html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; 
-            position: fixed; 
-            background-color: #f8fafc;
-        }
-        
-        body { 
-            overscroll-behavior: none; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; position: fixed; background-color: #f8fafc; }
+        body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         #game-container { width: 100%; max-width: var(--board-max-width); margin: 0 auto; display: flex; flex-direction: column; }
-        
-        .board-bg {
-            background: var(--brand-blue);
-            border-radius: clamp(16px, 3vh, 36px);
-            padding: var(--board-padding);
-            box-shadow: 0 15px 40px -10px rgba(0,0,0,0.12);
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: var(--grid-gap);
-        }
-
+        .board-bg { background: var(--brand-blue); border-radius: clamp(16px, 3vh, 36px); padding: var(--board-padding); display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--grid-gap); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.12); }
         .cell-container { position: relative; width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; }
         .cell-content { width: calc(100% * var(--piece-scale)); height: calc(100% * var(--piece-scale)); border-radius: 50%; position: absolute; }
-
         @keyframes drop { 0% { transform: translateY(-100vh); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
         .drop-animation { animation: drop 0.45s cubic-bezier(0.2, 0.5, 0.3, 1); }
-        
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.6); transform: scale(0.95); border: 4px solid white; }
-            50% { box-shadow: 0 0 35px 12px rgba(255, 255, 255, 0.8); transform: scale(1.03); border: 4px solid white; }
-        }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.6); transform: scale(0.95); border: 4px solid white; } 50% { box-shadow: 0 0 35px 12px rgba(255, 255, 255, 0.8); transform: scale(1.03); border: 4px solid white; } }
         .win-glow { animation: pulse-glow 1.5s ease-in-out infinite; z-index: 10; }
-
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { 
-            from { opacity: 0; backdrop-filter: blur(0px); } 
-            to { opacity: 1; backdrop-filter: blur(8px); } 
-        }
-
+        @keyframes fadeIn { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(8px); } }
         .pop-up { animation: popUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes popUp { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-
         .btn-soft-shadow { box-shadow: var(--shared-soft-shadow); }
-        
-        button { touch-action: manipulation; -webkit-user-select: none; user-select: none; transition: transform 0.2s; }
+        button { touch-action: manipulation; transition: transform 0.2s; }
         button:active:not(:disabled) { transform: scale(0.95); }
     </style>
 </head>
@@ -162,9 +103,11 @@
                 isAnimating = true;
                 // 現在の状態を履歴に保存
                 history.push({ board: board.map(r => [...r]), player: currentPlayer });
+                
                 board[row][col] = currentPlayer;
                 const activePlayer = currentPlayer;
                 render(); 
+                
                 const piece = document.querySelector(`[data-piece-row="${row}"][data-piece-col="${col}"] .cell-piece`);
                 if (piece) piece.classList.add('drop-animation');
 
@@ -188,6 +131,7 @@
         return false;
     }
 
+    // AI Logic (findBestMove, minimax, evaluate etc... remains same as base)
     function makeAiMove() {
         if (winner || isDraw || !isAiMode || currentPlayer !== PLAYER2) return;
         const bestMove = findBestMove(board);
@@ -323,33 +267,30 @@
     function undoMove() {
         if (history.length === 0 || isAnimating || winner || isDraw || showResetConfirm) return;
 
-        if (isAiMode) {
-            // AIモードの場合：AIの手と自分の手の2つを戻す必要がある
-            if (history.length >= 2) {
-                // 1. 直前のAIの手の状態を捨てる
-                history.pop(); 
-                // 2. 自分の手の状態を取り出して反映する
-                const prevState = history.pop();
-                board = prevState.board;
-                currentPlayer = prevState.player;
-            } else {
-                // 履歴が1つしかない（AIが打つ前）場合は1つ戻すだけ
-                const prevState = history.pop();
-                board = prevState.board;
-                currentPlayer = prevState.player;
-            }
+        if (isAiMode && history.length >= 2) {
+            // AIの手を取り除く
+            history.pop(); 
+            // 自分の手を打つ前の状態を取り出して反映
+            const prevState = history.pop();
+            board = prevState.board;
+            currentPlayer = PLAYER1; // 常に自分の番に戻る
         } else {
-            // 対人モードの場合：1つ戻す
+            // 対人モードまたは最初の手の場合
             const prevState = history.pop();
             board = prevState.board;
             currentPlayer = prevState.player;
         }
+        
+        winner = null;
+        isDraw = false;
+        winningCells = [];
         render();
     }
 
-    function backToHome() { gameStarted = false; showResetConfirm = false; render(); }
+    function backToHome() { gameStarted = false; showResetConfirm = false; resetGame(false); }
     function confirmReset() { if (winner || isDraw) resetGame(true); else { showResetConfirm = true; render(); } }
     function cancelReset() { showResetConfirm = false; render(); }
+    
     function resetGame(keepStarted = true) {
         board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
         currentPlayer = PLAYER1; winner = null; isDraw = false; winningCells = []; isAnimating = false; history = [];
@@ -376,11 +317,10 @@
             <div id="main-wrapper" style="height: 100dvh; width: 100vw; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); user-select: none; overflow: hidden; background-color: #f8fafc;">
                 
                 ${!gameStarted ? `
-                    <div class="fade-in" style="position: fixed; top: -10vh; bottom: -10vh; left: -10vw; right: -10vw; width: 120vw; height: 120vh; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; text-align: center; padding: 20px;">
+                    <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; text-align: center;">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width);">
-                            <h1 style="font-size: clamp(36px, 12vw, 68px); font-weight: 900; color: var(--brand-blue); margin-bottom: 8px; letter-spacing: -0.05em; line-height: 1;">CONNECT 4</h1>
-                            <p style="color: #64748b; font-weight: 700; margin-bottom: clamp(30px, 8vh, 50px); font-size: 16px; letter-spacing: 0.05em;"></p>
-                            <div style="display: flex; flex-direction: column; gap: clamp(12px, 3vh, 20px); width: 100%;">
+                            <h1 style="font-size: clamp(36px, 12vw, 68px); font-weight: 900; color: var(--brand-blue); margin-bottom: 40px; letter-spacing: -0.05em; line-height: 1;">CONNECT 4</h1>
+                            <div style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
                                 <button onclick="startGame(true)" class="btn-soft-shadow" style="background: var(--brand-blue); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: none; cursor: pointer;">VS COMPUTER</button>
                                 <button onclick="startGame(false)" class="btn-soft-shadow" style="background: white; color: var(--brand-blue); width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: 2px solid #e2e8f0; cursor: pointer;">VS FRIEND</button>
                             </div>
@@ -389,33 +329,28 @@
                 ` : ''}
 
                 ${showResetConfirm ? `
-                    <div class="fade-in" style="position: fixed; top: -10vh; bottom: -10vh; left: -10vw; right: -10vw; width: 120vw; height: 120vh; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); text-align: center; padding: 20px;">
+                    <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); text-align: center;">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width);">
-                            <h3 style="font-size: var(--modal-title); font-weight: 900; color: white; margin-bottom: clamp(20px, 5vh, 40px); letter-spacing: -0.02em; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">RESET GAME?</h3>
-                            <div style="display: flex; flex-direction: column; gap: clamp(12px, 3vh, 20px); width: 100%;">
+                            <h3 style="font-size: var(--modal-title); font-weight: 900; color: white; margin-bottom: 40px; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">RESET GAME?</h3>
+                            <div style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
                                 <button onclick="resetGame(true)" class="btn-soft-shadow" style="background: white; color: #ef4444; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 900; font-size: var(--modal-btn-text); border: none; cursor: pointer;">RESET NOW</button>
                                 <button onclick="backToHome()" style="background: rgba(255,255,255,0.2); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: 1px solid rgba(255,255,255,0.3); cursor: pointer; backdrop-filter: blur(8px);">MAIN MENU</button>
-                                <button onclick="cancelReset()" style="color: white; font-weight: 800; font-size: calc(var(--modal-btn-text) * 0.85); border: none; cursor: pointer; background: none; opacity: 1; margin-top: 8px; letter-spacing: 0.1em; text-shadow: 0 1px 5px rgba(0,0,0,0.5);">CANCEL</button>
+                                <button onclick="cancelReset()" style="color: white; font-weight: 800; margin-top: 8px; cursor: pointer; background: none;">CANCEL</button>
                             </div>
                         </div>
                     </div>
                 ` : ''}
 
                 ${(winner || isDraw) ? `
-                    <div class="fade-in" style="position: fixed; top: -10vh; bottom: -10vh; left: -10vw; right: -10vw; width: 120vw; height: 120vh; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); padding: 20px;">
-                        <div style="text-align: center; color: white; margin-bottom: clamp(30px, 6vh, 60px);">
-                            <p style="font-size: var(--winner-label-size); font-weight: 800; letter-spacing: 0.3em; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); text-transform: uppercase;">
-                                ${isDraw ? 'NO ONE WON' : 'WINNER!'}
-                            </p>
-                            <h2 style="font-size: var(--winner-name-size); font-weight: 900; line-height: 0.9; letter-spacing: -0.04em;">
-                                ${isDraw ? 
-                                    '<span style="color: #cbd5e1; text-shadow: 0 0 40px rgba(0,0,0,0.4);">DRAW</span>' : 
-                                    `<span style="color: ${winner === PLAYER1 ? '#ef4444' : '#fbbf24'}; text-shadow: 0 0 40px rgba(0,0,0,0.4);">${winner === PLAYER1 ? 'RED' : 'YELLOW'}</span>`
-                                }
+                    <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); padding: 20px;">
+                        <div style="text-align: center; color: white; margin-bottom: 40px;">
+                            <p style="font-size: var(--winner-label-size); font-weight: 800; letter-spacing: 0.3em; margin-bottom: 8px;">${isDraw ? 'NO ONE WON' : 'WINNER!'}</p>
+                            <h2 style="font-size: var(--winner-name-size); font-weight: 900; line-height: 0.9;">
+                                ${isDraw ? '<span style="color: #cbd5e1;">DRAW</span>' : `<span style="color: ${winner === PLAYER1 ? '#ef4444' : '#fbbf24'};">${winner === PLAYER1 ? 'RED' : 'YELLOW'}</span>`}
                             </h2>
                         </div>
                         <div style="width: 100%; max-width: var(--modal-max-width); display: flex; flex-direction: column; gap: 16px;">
-                            <button onclick="resetGame(true)" class="btn-soft-shadow" style="background: white; color: black; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 900; font-size: var(--modal-btn-text); border: none; cursor: pointer; width: 100%;">PLAY AGAIN</button>
+                            <button onclick="resetGame(true)" class="btn-soft-shadow" style="background: white; color: black; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 900; font-size: var(--modal-btn-text); cursor: pointer; width: 100%;">PLAY AGAIN</button>
                             <button onclick="backToHome()" style="background: rgba(255,255,255,0.2); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: 1px solid rgba(255,255,255,0.3); cursor: pointer; backdrop-filter: blur(8px);">MAIN MENU</button>
                         </div>
                     </div>
@@ -423,31 +358,24 @@
 
                 <div id="game-container" style="display: ${gameStarted ? 'flex' : 'none'}; transition: all 0.4s ease; ${(winner || isDraw || showResetConfirm) ? 'filter: blur(8px); transform: scale(0.98);' : ''}">
                     <div class="header-margin" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 4px;">
-                        <h1 style="font-size: var(--title-size); font-weight: 900; color: #1e293b; letter-spacing: -0.03em; line-height: 1;">CONNECT 4</h1>
+                        <h1 style="font-size: var(--title-size); font-weight: 900; color: #1e293b; letter-spacing: -0.03em;">CONNECT 4</h1>
                         <div style="display: flex; gap: 10px;">
-                            <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="flex items-center rounded-full font-black transition-all ${undoBtnStyle}" style="padding: var(--btn-padding); font-size: var(--btn-text);">UNDO</button>
-                            <button onclick="confirmReset()" class="bg-white text-gray-500 border border-gray-100 rounded-full font-black hover:bg-gray-50 transition-all btn-soft-shadow active:scale-95" style="padding: var(--btn-padding); font-size: var(--btn-text);">RESET</button>
+                            <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="rounded-full font-black transition-all ${undoBtnStyle}" style="padding: var(--btn-padding); font-size: var(--btn-text);">UNDO</button>
+                            <button onclick="confirmReset()" class="bg-white text-gray-500 border border-gray-100 rounded-full font-black hover:bg-gray-50 transition-all btn-soft-shadow" style="padding: var(--btn-padding); font-size: var(--btn-text);">RESET</button>
                         </div>
                     </div>
-
                     <div class="board-bg">${gridHtml}</div>
-
                     <div class="footer-margin" style="margin-top: var(--footer-margin); display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 4px;">
-                        <div style="font-size: var(--mode-text-size); font-weight: 800; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase;">
-                            ${isAiMode ? 'VS COMPUTER' : 'VS FRIEND'}
-                        </div>
-                        <div style="display: flex; align-items: center; gap: clamp(10px, 3vw, 18px);">
-                            <span style="font-weight: 900; color: #64748b; font-size: var(--mode-text-size); letter-spacing: 0.1em;">
-                                ${(isAiMode && currentPlayer === PLAYER2) ? 'AI...' : 'NEXT'}
-                            </span>
-                            <div style="width: var(--next-ui-size); height: var(--next-ui-size); border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.4s;" class="${(!winner && !isDraw) ? 'animate-pulse' : ''}"></div>
+                        <div style="font-size: var(--mode-text-size); font-weight: 800; color: #94a3b8; text-transform: uppercase;">${isAiMode ? 'VS COMPUTER' : 'VS FRIEND'}</div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-weight: 900; color: #64748b; font-size: var(--mode-text-size);"> ${(isAiMode && currentPlayer === PLAYER2) ? 'AI...' : 'NEXT'} </span>
+                            <div style="width: var(--next-ui-size); height: var(--next-ui-size); border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'}; transition: all 0.4s;" class="${(!winner && !isDraw) ? 'animate-pulse' : ''}"></div>
                         </div>
                     </div>
                 </div>
             </div>
         `;
     }
-
     render();
 </script>
 </body>
