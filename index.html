@@ -61,18 +61,20 @@
 
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         
-        html {
-            background-color: var(--page-bg);
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
             height: 100%;
+            /* iOS Safariの100vh問題を解決する呪文 */
             height: -webkit-fill-available;
+            background-color: var(--page-bg);
+            overflow: hidden;
+            position: fixed;
+            overscroll-behavior: none;
         }
-        body { 
-            margin: 0; padding: 0; width: 100%; 
-            height: 100%;
-            height: -webkit-fill-available;
-            overflow: hidden; position: fixed; 
-            background-color: var(--page-bg);
-            overscroll-behavior: none; 
+
+        body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         
@@ -361,7 +363,7 @@
         ).join('');
 
         app.innerHTML = `
-            <div id="main-wrapper" style="height: 100vh; height: 100dvh; min-height: -webkit-fill-available; width: 100vw; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); user-select: none; overflow: hidden; background-color: var(--page-bg);">
+            <div id="main-wrapper" style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; height: 100%; min-height: -webkit-fill-available; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); user-select: none; overflow: hidden; background-color: var(--page-bg);">
                 ${!gameStarted ? `
                     <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--page-bg); text-align: center;">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width);">
