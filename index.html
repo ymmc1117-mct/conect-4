@@ -60,12 +60,21 @@
         }
 
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        html, body { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; position: fixed; 
-            background-color: var(--page-bg); /* 背景色を強制 */
+        
+        /* Appleデバイスの全画面背景を保証する設定 */
+        html {
+            background-color: var(--page-bg);
+            height: -webkit-fill-available;
         }
-        body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { 
+            margin: 0; padding: 0; width: 100%; 
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            overflow: hidden; position: fixed; 
+            background-color: var(--page-bg);
+            overscroll-behavior: none; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
         
         #game-container { width: 100%; max-width: var(--board-max-width); margin: 0 auto; display: flex; flex-direction: column; }
         .board-bg { background: var(--brand-blue); border-radius: clamp(16px, 3vh, 36px); padding: var(--board-padding); display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--grid-gap); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.12); }
@@ -352,7 +361,7 @@
         ).join('');
 
         app.innerHTML = `
-            <div id="main-wrapper" style="height: 100dvh; width: 100vw; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); user-select: none; overflow: hidden; background-color: var(--page-bg);">
+            <div id="main-wrapper" style="height: 100vh; height: 100dvh; width: 100vw; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); user-select: none; overflow: hidden; background-color: var(--page-bg);">
                 ${!gameStarted ? `
                     <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--page-bg); text-align: center;">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width);">
