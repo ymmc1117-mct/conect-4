@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0a2291">
+    <meta name="theme-color" content="#f8fafc">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -60,8 +60,13 @@
         }
 
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; position: fixed; background-color: var(--page-bg); }
+        html, body { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; position: fixed; 
+            background-color: var(--page-bg); /* 背景色を強制 */
+        }
         body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
         #game-container { width: 100%; max-width: var(--board-max-width); margin: 0 auto; display: flex; flex-direction: column; }
         .board-bg { background: var(--brand-blue); border-radius: clamp(16px, 3vh, 36px); padding: var(--board-padding); display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--grid-gap); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.12); }
         .cell-container { position: relative; width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; }
@@ -375,7 +380,7 @@
                 ` : ''}
 
                 ${(winner || isDraw) ? `
-                    <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); padding: 20px;">
+                    <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));">
                         <div style="text-align: center; color: white; margin-bottom: 40px;">
                             <p style="font-size: var(--winner-label-size); font-weight: 800; letter-spacing: 0.3em; margin-bottom: 8px;">${isDraw ? 'NO ONE WON' : 'WINNER!'}</p>
                             <h2 style="font-size: var(--winner-name-size); font-weight: 900; line-height: 0.9;">
