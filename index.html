@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0a2291">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Connect 4">
+    <link rel="apple-touch-icon" href="icon512.png">
+
     <title>CONNECT 4 - Responsive AI</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <style>
@@ -90,7 +96,7 @@
     let isAiMode = true;
     let aiDifficulty = 'Hard';
     let showResetConfirm = false;
-    let aiTimeoutId = null; // AIの思考をキャンセルするためのID
+    let aiTimeoutId = null;
 
     function startGame(vsAi, difficulty = 'Hard') { 
         isAiMode = vsAi; 
@@ -127,11 +133,10 @@
                     } else {
                         currentPlayer = activePlayer === PLAYER1 ? PLAYER2 : PLAYER1;
                         if (isAiMode && currentPlayer === PLAYER2 && !winner && !isDraw) {
-                            // AIの思考中もアニメーションフラグを保持して操作をロック
                             isAnimating = true; 
                             aiTimeoutId = setTimeout(makeAiMove, 650);
                             render();
-                            return; // AI待ち状態に入るためここで抜ける
+                            return;
                         }
                     }
                     isAnimating = false; render();
@@ -147,7 +152,6 @@
             isAnimating = false;
             return;
         }
-        
         let bestMove;
         if (aiDifficulty === 'Normal') {
             if (Math.random() < 0.20) {
@@ -160,12 +164,10 @@
         } else {
             bestMove = findBestMove(board, 4);
         }
-        
-        isAnimating = false; // AIが手を決めたのでフラグを一度リセットしてexecuteMoveに渡す
+        isAnimating = false;
         if (bestMove !== -1) executeMove(bestMove);
     }
 
-    // Minimax等のロジック関数群（変更なし）
     function findBestMove(b, depth) {
         const columnOrder = [3, 2, 4, 1, 5, 0, 6];
         for (const col of columnOrder) {
@@ -184,7 +186,6 @@
                 if (checkBoardWinner(testBoard, PLAYER1)) return col;
             }
         }
-
         let bestScore = -Infinity; let bestCol = 3;
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
@@ -298,13 +299,7 @@
 
     function undoMove() {
         if (history.length === 0 || isAnimating || winner || isDraw || showResetConfirm) return;
-        
-        // AIの思考（setTimeout）が進行中の場合はキャンセル
-        if (aiTimeoutId) {
-            clearTimeout(aiTimeoutId);
-            aiTimeoutId = null;
-        }
-
+        if (aiTimeoutId) { clearTimeout(aiTimeoutId); aiTimeoutId = null; }
         if (isAiMode && history.length >= 2) {
             history.pop(); 
             const prevState = history.pop();
@@ -347,7 +342,6 @@
 
         app.innerHTML = `
             <div id="main-wrapper" style="height: 100dvh; width: 100vw; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); user-select: none; overflow: hidden; background-color: #f8fafc;">
-                
                 ${!gameStarted ? `
                     <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; text-align: center;">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width);">
@@ -412,6 +406,15 @@
         `;
     }
     render();
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW registered', reg))
+                .catch(err => console.error('SW failed', err));
+        });
+    }
 </script>
 </body>
 </html>
