@@ -61,15 +61,15 @@
 
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         
-        /* Appleデバイスの全画面背景を保証する設定 */
         html {
             background-color: var(--page-bg);
+            height: 100%;
             height: -webkit-fill-available;
         }
         body { 
             margin: 0; padding: 0; width: 100%; 
-            min-height: 100vh;
-            min-height: -webkit-fill-available;
+            height: 100%;
+            height: -webkit-fill-available;
             overflow: hidden; position: fixed; 
             background-color: var(--page-bg);
             overscroll-behavior: none; 
@@ -361,7 +361,7 @@
         ).join('');
 
         app.innerHTML = `
-            <div id="main-wrapper" style="height: 100vh; height: 100dvh; width: 100vw; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); user-select: none; overflow: hidden; background-color: var(--page-bg);">
+            <div id="main-wrapper" style="height: 100vh; height: 100dvh; min-height: -webkit-fill-available; width: 100vw; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); user-select: none; overflow: hidden; background-color: var(--page-bg);">
                 ${!gameStarted ? `
                     <div class="fade-in" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--page-bg); text-align: center;">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width);">
