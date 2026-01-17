@@ -214,16 +214,17 @@
             isAnimating = false;
             return;
         }
+        // Normalなら深さ2、Hardなら深さ4で探索
         let bestMove = findBestMove(board, aiDifficulty === 'Normal' ? 2 : 4);
         isAnimating = false;
         if (bestMove !== -1) executeMove(bestMove);
     }
 
     function findBestMove(b, depth) {
-        // 探索順序をシャッフルして、同じ評価の手がある場合にばらつかせる
+        // 探索順序をシャッフルして初期の偏りをなくす
         const columnOrder = [3, 2, 4, 1, 5, 0, 6].sort(() => Math.random() - 0.5);
         
-        // 1. 即勝利できる手があればランダムに選ぶ（複数ある場合）
+        // 1. 即勝利できる手があるかチェック（複数あればランダム）
         let winningMoves = [];
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
@@ -235,7 +236,7 @@
         }
         if (winningMoves.length > 0) return winningMoves[Math.floor(Math.random() * winningMoves.length)];
 
-        // 2. 相手が次で勝つ手があれば、それを防ぐ手をランダムに選ぶ
+        // 2. 相手が次で勝つ手があるかチェックして防ぐ（複数あればランダム）
         let blockingMoves = [];
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
@@ -247,7 +248,7 @@
         }
         if (blockingMoves.length > 0) return blockingMoves[Math.floor(Math.random() * blockingMoves.length)];
 
-        // 3. ミニマックス法で最善のスコアを持つ手をすべて集めて、その中からランダムに選ぶ
+        // 3. ミニマックス法で評価。同じスコアの手をすべてリストアップしてランダムに選ぶ
         let bestScore = -Infinity;
         let bestMoves = [];
         
@@ -256,12 +257,15 @@
             if (row !== -1) {
                 const testBoard = b.map(r => [...r]);
                 testBoard[row][col] = PLAYER2;
+                
                 if (!givesOpponentWin(testBoard, PLAYER1)) {
-                    const score = minimax(testBoard, depth, -Infinity, Infinity, false);
+                    // スコア計算にわずかなランダムノイズを加え、同一スコアの「固定化」を防ぐ
+                    const score = minimax(testBoard, depth, -Infinity, Infinity, false) + (Math.random() * 2 - 1);
+                    
                     if (score > bestScore) {
                         bestScore = score;
                         bestMoves = [col];
-                    } else if (score === bestScore) {
+                    } else if (Math.abs(score - bestScore) < 0.1) {
                         bestMoves.push(col);
                     }
                 }
@@ -272,15 +276,16 @@
             return bestMoves[Math.floor(Math.random() * bestMoves.length)];
         }
 
-        // 4. どこにも打てない場合や負け確定の場合のフォールバック
+        // 負け確定や打つ場所がない場合のフォールバック
         const availableCols = columnOrder.filter(c => getAvailableRow(b, c) !== -1);
-        return availableCols.length > 0 ? availableCols[Math.floor(Math.random() * availableCols.length)] : -1;
+        return availableCols.length > 0 ? availableCols[0] : -1;
     }
 
     function minimax(b, depth, alpha, beta, isMaximizing) {
         if (checkBoardWinner(b, PLAYER2)) return 10000;
         if (checkBoardWinner(b, PLAYER1)) return -10000;
         if (depth === 0 || isBoardFull(b)) return evaluateBoard(b);
+        
         const columnOrder = [3, 2, 4, 1, 5, 0, 6];
         if (isMaximizing) {
             let maxScore = -Infinity;
@@ -313,7 +318,11 @@
 
     function evaluateBoard(b) {
         let score = 0;
-        for (let r = 0; r < ROWS; r++) { if (b[r][3] === PLAYER2) score += 3; if (b[r][3] === PLAYER1) score -= 3; }
+        // 中央列への加点を少し抑え、他の戦略も選ばれやすくする
+        for (let r = 0; r < ROWS; r++) { 
+            if (b[r][3] === PLAYER2) score += 2; 
+            if (b[r][3] === PLAYER1) score -= 2; 
+        }
         return score + (evaluateAllWindows(b, PLAYER2) - evaluateAllWindows(b, PLAYER1));
     }
 
@@ -330,7 +339,7 @@
         const p = window.filter(c => c === player).length;
         const e = window.filter(c => c === 0).length;
         const o = window.filter(c => c !== player && c !== 0).length;
-        if (p === 4) return 100; if (p === 3 && e === 1) return 10; if (p === 2 && e === 2) return 5;
+        if (p === 4) return 100; if (p === 3 && e === 1) return 12; if (p === 2 && e === 2) return 5;
         if (o === 3 && e === 1) return -80; return 0;
     }
 
