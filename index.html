@@ -124,7 +124,7 @@
         .win-glow { animation: pulse-glow 1.5s ease-in-out infinite; z-index: 5; }
         .fade-in { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .pop-up { animation: popUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .pop-up { animation: pop up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes popUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         
         button { touch-action: manipulation; transition: transform 0.1s; }
@@ -221,10 +221,16 @@
     }
 
     function findBestMove(b, depth) {
-        // 探索順序をシャッフルして初期の偏りをなくす
+        // 探索順序を常にシャッフル
         const columnOrder = [3, 2, 4, 1, 5, 0, 6].sort(() => Math.random() - 0.5);
         
-        // 1. 即勝利できる手があるかチェック（複数あればランダム）
+        // 【NORMAL専用】20%の確率で完全ランダムな手（うっかり）を選択してパターン化を防止
+        if (aiDifficulty === 'Normal' && Math.random() < 0.2) {
+            const available = columnOrder.filter(c => getAvailableRow(b, c) !== -1);
+            if (available.length > 0) return available[Math.floor(Math.random() * available.length)];
+        }
+
+        // 1. 即勝利できる手があるかチェック
         let winningMoves = [];
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
@@ -236,7 +242,7 @@
         }
         if (winningMoves.length > 0) return winningMoves[Math.floor(Math.random() * winningMoves.length)];
 
-        // 2. 相手が次で勝つ手があるかチェックして防ぐ（複数あればランダム）
+        // 2. 相手が次で勝つ手があるかチェックして防ぐ
         let blockingMoves = [];
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
@@ -248,9 +254,11 @@
         }
         if (blockingMoves.length > 0) return blockingMoves[Math.floor(Math.random() * blockingMoves.length)];
 
-        // 3. ミニマックス法で評価。同じスコアの手をすべてリストアップしてランダムに選ぶ
+        // 3. ミニマックス法で評価。
         let bestScore = -Infinity;
-        let bestMoves = [];
+        let candidates = [];
+        // NORMALなら判定を甘く（15点差まで許容）、HARDなら厳しく（2点差まで）
+        const threshold = aiDifficulty === 'Normal' ? 15 : 2;
         
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
@@ -259,21 +267,21 @@
                 testBoard[row][col] = PLAYER2;
                 
                 if (!givesOpponentWin(testBoard, PLAYER1)) {
-                    // スコア計算にわずかなランダムノイズを加え、同一スコアの「固定化」を防ぐ
+                    // わずかなノイズを加えて評価を揺らす
                     const score = minimax(testBoard, depth, -Infinity, Infinity, false) + (Math.random() * 2 - 1);
                     
-                    if (score > bestScore) {
+                    if (score > bestScore + threshold) {
                         bestScore = score;
-                        bestMoves = [col];
-                    } else if (Math.abs(score - bestScore) < 0.1) {
-                        bestMoves.push(col);
+                        candidates = [col];
+                    } else if (score >= bestScore - threshold) {
+                        candidates.push(col);
                     }
                 }
             }
         }
         
-        if (bestMoves.length > 0) {
-            return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        if (candidates.length > 0) {
+            return candidates[Math.floor(Math.random() * candidates.length)];
         }
 
         // 負け確定や打つ場所がない場合のフォールバック
@@ -318,7 +326,6 @@
 
     function evaluateBoard(b) {
         let score = 0;
-        // 中央列への加点を少し抑え、他の戦略も選ばれやすくする
         for (let r = 0; r < ROWS; r++) { 
             if (b[r][3] === PLAYER2) score += 2; 
             if (b[r][3] === PLAYER1) score -= 2; 
