@@ -15,7 +15,6 @@
     <title>CONNECT 4 - Responsive AI</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <style>
-        /* 参考コードの設計思想を移植 */
         :root {
             --brand-blue: #0a2291;
             --page-bg: #f8fafc;
@@ -40,7 +39,6 @@
             --winner-name-size: clamp(54px, 18vw, 90px);
         }
 
-        /* リセットと基本設定 */
         * {
             margin: 0;
             padding: 0;
@@ -48,27 +46,24 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* 成功コードのbody/html構造 */
         html, body {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* スクロール防止 */
+            overflow: hidden;
             background: var(--page-bg);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             min-height: 100vh;
-            /* iOSセーフエリア対応 */
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
             display: flex;
             flex-direction: column;
         }
 
-        /* 参考コードの.containerに相当 */
         #main-wrapper {
             width: 100%;
             height: 100%;
@@ -81,7 +76,6 @@
             background: var(--page-bg);
         }
 
-        /* ゲーム画面の構成 */
         #game-container { 
             width: 100%; 
             max-width: var(--board-max-width); 
@@ -90,12 +84,10 @@
             flex-direction: column; 
         }
 
-        /* ボード周り */
         .board-bg { background: var(--brand-blue); border-radius: clamp(16px, 3vh, 36px); padding: var(--board-padding); display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--grid-gap); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.12); }
         .cell-container { position: relative; width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; }
         .cell-content { width: calc(100% * var(--piece-scale)); height: calc(100% * var(--piece-scale)); border-radius: 50%; position: absolute; }
         
-        /* ダイアログ（暗い背景） */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -108,7 +100,6 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            /* ダイアログもセーフエリアまで広げる */
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
         }
@@ -116,21 +107,17 @@
             box-shadow: var(--shared-soft-shadow); 
         }
 
-        /* アニメーション */
         @keyframes drop { 0% { transform: translateY(-100vh); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
         .drop-animation { animation: drop 0.45s cubic-bezier(0.2, 0.5, 0.3, 1); }
         @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.6); transform: scale(0.95); border: 4px solid white; } 50% { box-shadow: 0 0 35px 12px rgba(255, 255, 255, 0.8); transform: scale(1.03); border: 4px solid white; } }
         .win-glow { animation: pulse-glow 1.5s ease-in-out infinite; z-index: 5; }
         
-        /* ボードのふわっとしたフェードイン */
         .fade-in { animation: fadeIn 0.6s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* ポップアップ */
         .pop-up { animation: popUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes popUp { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
 
-        /* 追加：メインメニュー用のリッチな時間差アニメーション */
         .stagger-up { 
             opacity: 0; 
             animation: staggerUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
@@ -234,12 +221,10 @@
 
     function findBestMove(b, depth) {
         const columnOrder = [3, 2, 4, 1, 5, 0, 6].sort(() => Math.random() - 0.5);
-        
         if (aiDifficulty === 'Normal' && Math.random() < 0.2) {
             const available = columnOrder.filter(c => getAvailableRow(b, c) !== -1);
             if (available.length > 0) return available[Math.floor(Math.random() * available.length)];
         }
-
         let winningMoves = [];
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
@@ -250,7 +235,6 @@
             }
         }
         if (winningMoves.length > 0) return winningMoves[Math.floor(Math.random() * winningMoves.length)];
-
         let blockingMoves = [];
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
@@ -261,20 +245,16 @@
             }
         }
         if (blockingMoves.length > 0) return blockingMoves[Math.floor(Math.random() * blockingMoves.length)];
-
         let bestScore = -Infinity;
         let candidates = [];
         const threshold = aiDifficulty === 'Normal' ? 15 : 2;
-        
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
             if (row !== -1) {
                 const testBoard = b.map(r => [...r]);
                 testBoard[row][col] = PLAYER2;
-                
                 if (!givesOpponentWin(testBoard, PLAYER1)) {
                     const score = minimax(testBoard, depth, -Infinity, Infinity, false) + (Math.random() * 2 - 1);
-                    
                     if (score > bestScore + threshold) {
                         bestScore = score;
                         candidates = [col];
@@ -284,11 +264,7 @@
                 }
             }
         }
-        
-        if (candidates.length > 0) {
-            return candidates[Math.floor(Math.random() * candidates.length)];
-        }
-
+        if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
         const availableCols = columnOrder.filter(c => getAvailableRow(b, c) !== -1);
         return availableCols.length > 0 ? availableCols[0] : -1;
     }
@@ -297,7 +273,6 @@
         if (checkBoardWinner(b, PLAYER2)) return 10000;
         if (checkBoardWinner(b, PLAYER1)) return -10000;
         if (depth === 0 || isBoardFull(b)) return evaluateBoard(b);
-        
         const columnOrder = [3, 2, 4, 1, 5, 0, 6];
         if (isMaximizing) {
             let maxScore = -Infinity;
@@ -426,15 +401,15 @@
         ).join('');
 
         app.innerHTML = `
-            <div id="main-wrapper" class="fade-in">
+            <div id="main-wrapper" class="${gameStarted ? '' : 'fade-in'}">
                 ${!gameStarted ? `
                     <div class="modal-overlay" style="background: var(--page-bg);">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width); text-align: center;">
                             <h1 style="font-size: clamp(36px, 12vw, 68px); font-weight: 900; color: var(--brand-blue); margin-bottom: 40px; letter-spacing: -0.05em; line-height: 1;">CONNECT 4</h1>
                             <div style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
-                                <button onclick="startGame(true, 'Normal')" class="btn-soft-shadow stagger-up" style="animation-delay: 0.1s; background: var(--normal-btn-bg); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: none;">VS AI NORMAL</button>
-                                <button onclick="startGame(true, 'Hard')" class="btn-soft-shadow stagger-up" style="animation-delay: 0.2s; background: var(--brand-blue); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: none;">VS AI HARD</button>
-                                <button onclick="startGame(false)" class="btn-soft-shadow stagger-up" style="animation-delay: 0.3s; background: white; color: var(--brand-blue); width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: 2px solid #e2e8f0;">VS FRIEND</button>
+                                <button onclick="startGame(true, 'Normal')" class="btn-soft-shadow stagger-up" style="animation-delay: 0.3s; background: var(--normal-btn-bg); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: none;">VS AI NORMAL</button>
+                                <button onclick="startGame(true, 'Hard')" class="btn-soft-shadow stagger-up" style="animation-delay: 0.5s; background: var(--brand-blue); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: none;">VS AI HARD</button>
+                                <button onclick="startGame(false)" class="btn-soft-shadow stagger-up" style="animation-delay: 0.7s; background: white; color: var(--brand-blue); width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: 2px solid #e2e8f0;">VS FRIEND</button>
                             </div>
                         </div>
                     </div>
