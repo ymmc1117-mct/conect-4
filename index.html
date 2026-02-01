@@ -178,19 +178,47 @@
     let gameStarted = false;
     let isAiMode = true;
     let aiDifficulty = 'Hard';
+    let aiPlayer = PLAYER2; // AI uses this to identify itself
     let showResetConfirm = false;
+    let showMenuConfirm = false;
+    let showTurnSelect = false;
+    let pendingDifficulty = 'Hard';
     let aiTimeoutId = null;
 
     function startGame(vsAi, difficulty = 'Hard') { 
-        isAiMode = vsAi; 
-        aiDifficulty = difficulty;
-        gameStarted = true; 
-        resetGame(true); 
+        if (vsAi) {
+            pendingDifficulty = difficulty;
+            isAiMode = true;
+            aiDifficulty = difficulty;
+            showTurnSelect = true;
+            gameStarted = true;
+            render();
+        } else {
+            isAiMode = false; 
+            aiDifficulty = difficulty;
+            gameStarted = true; 
+            resetGame(true); 
+        }
+    }
+
+    function selectTurn(userFirst) {
+        isAiMode = true;
+        aiDifficulty = pendingDifficulty;
+        aiPlayer = userFirst ? PLAYER2 : PLAYER1;
+        showTurnSelect = false;
+        gameStarted = true;
+        resetGame(true);
+    }
+
+    function cancelTurnSelect() {
+        showTurnSelect = false;
+        gameStarted = false;
+        render();
     }
 
     function dropPiece(col) {
-        if (!gameStarted || winner || isDraw || isAnimating || showResetConfirm) return;
-        if (isAiMode && currentPlayer === PLAYER2) return; 
+        if (!gameStarted || winner || isDraw || isAnimating || showResetConfirm || showMenuConfirm || showTurnSelect) return;
+        if (isAiMode && currentPlayer === aiPlayer) return; 
         executeMove(col);
     }
 
@@ -214,7 +242,7 @@
                         isDraw = true;
                     } else {
                         currentPlayer = activePlayer === PLAYER1 ? PLAYER2 : PLAYER1;
-                        if (isAiMode && currentPlayer === PLAYER2 && !winner && !isDraw) {
+                        if (isAiMode && currentPlayer === aiPlayer && !winner && !isDraw) {
                             isAnimating = true; 
                             aiTimeoutId = setTimeout(makeAiMove, 650);
                             render();
@@ -230,7 +258,7 @@
     }
 
     function makeAiMove() {
-        if (winner || isDraw || !isAiMode || currentPlayer !== PLAYER2) {
+        if (winner || isDraw || !isAiMode || currentPlayer !== aiPlayer) {
             isAnimating = false;
             return;
         }
@@ -246,14 +274,15 @@
 
     function findBestMove(b, depth) {
         const columnOrder = [3, 2, 4, 1, 5, 0, 6].sort(() => Math.random() - 0.5);
+        const human = aiPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
         
         let winningMoves = [];
         for (const col of columnOrder) {
             const row = getAvailableRow(b, col);
             if (row !== -1) {
                 const testBoard = b.map(r => [...r]);
-                testBoard[row][col] = PLAYER2;
-                if (checkBoardWinner(testBoard, PLAYER2)) winningMoves.push(col);
+                testBoard[row][col] = aiPlayer;
+                if (checkBoardWinner(testBoard, aiPlayer)) winningMoves.push(col);
             }
         }
         if (winningMoves.length > 0) return winningMoves[Math.floor(Math.random() * winningMoves.length)];
@@ -262,8 +291,8 @@
             const row = getAvailableRow(b, col);
             if (row !== -1) {
                 const testBoard = b.map(r => [...r]);
-                testBoard[row][col] = PLAYER1;
-                if (checkBoardWinner(testBoard, PLAYER1)) blockingMoves.push(col);
+                testBoard[row][col] = human;
+                if (checkBoardWinner(testBoard, human)) blockingMoves.push(col);
             }
         }
         if (blockingMoves.length > 0) return blockingMoves[Math.floor(Math.random() * blockingMoves.length)];
@@ -279,8 +308,8 @@
             const row = getAvailableRow(b, col);
             if (row !== -1) {
                 const testBoard = b.map(r => [...r]);
-                testBoard[row][col] = PLAYER2;
-                if (!givesOpponentWin(testBoard, PLAYER1)) {
+                testBoard[row][col] = aiPlayer;
+                if (!givesOpponentWin(testBoard, human)) {
                     const score = minimax(testBoard, depth, -Infinity, Infinity, false) + (Math.random() * 2 - 1);
                     if (score > bestScore + threshold) {
                         bestScore = score;
@@ -297,8 +326,9 @@
     }
 
     function minimax(b, depth, alpha, beta, isMaximizing) {
-        if (checkBoardWinner(b, PLAYER2)) return 10000;
-        if (checkBoardWinner(b, PLAYER1)) return -10000;
+        const human = aiPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
+        if (checkBoardWinner(b, aiPlayer)) return 10000;
+        if (checkBoardWinner(b, human)) return -10000;
         if (depth === 0 || isBoardFull(b)) return evaluateBoard(b);
         const columnOrder = [3, 2, 4, 1, 5, 0, 6];
         if (isMaximizing) {
@@ -307,7 +337,7 @@
                 const row = getAvailableRow(b, col);
                 if (row !== -1) {
                     const testBoard = b.map(r => [...r]);
-                    testBoard[row][col] = PLAYER2;
+                    testBoard[row][col] = aiPlayer;
                     maxScore = Math.max(maxScore, minimax(testBoard, depth - 1, alpha, beta, false));
                     alpha = Math.max(alpha, maxScore);
                     if (beta <= alpha) break;
@@ -320,7 +350,7 @@
                 const row = getAvailableRow(b, col);
                 if (row !== -1) {
                     const testBoard = b.map(r => [...r]);
-                    testBoard[row][col] = PLAYER1;
+                    testBoard[row][col] = human;
                     minScore = Math.min(minScore, minimax(testBoard, depth - 1, alpha, beta, true));
                     beta = Math.min(beta, minScore);
                     if (beta <= alpha) break;
@@ -331,12 +361,13 @@
     }
 
     function evaluateBoard(b) {
+        const human = aiPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
         let score = 0;
         for (let r = 0; r < ROWS; r++) { 
-            if (b[r][3] === PLAYER2) score += 2; 
-            if (b[r][3] === PLAYER1) score -= 2; 
+            if (b[r][3] === aiPlayer) score += 2; 
+            if (b[r][3] === human) score -= 2; 
         }
-        return score + (evaluateAllWindows(b, PLAYER2) - evaluateAllWindows(b, PLAYER1));
+        return score + (evaluateAllWindows(b, aiPlayer) - evaluateAllWindows(b, human));
     }
 
     function evaluateAllWindows(b, player) {
@@ -393,27 +424,36 @@
     }
 
     function undoMove() {
-        if (history.length === 0 || isAnimating || winner || isDraw || showResetConfirm) return;
+        if (history.length === 0 || isAnimating || winner || isDraw || showResetConfirm || showMenuConfirm || showTurnSelect) return;
         if (aiTimeoutId) { clearTimeout(aiTimeoutId); aiTimeoutId = null; }
         if (isAiMode && history.length >= 2) { history.pop(); const prevState = history.pop(); board = prevState.board; currentPlayer = PLAYER1; }
         else { const prevState = history.pop(); board = prevState.board; currentPlayer = prevState.player; }
         winner = null; isDraw = false; winningCells = []; isAnimating = false; render();
     }
 
-    function backToHome() { gameStarted = false; showResetConfirm = false; resetGame(false); }
-    function confirmReset() { if (winner || isDraw) resetGame(true); else { showResetConfirm = true; render(); } }
+    function backToHome() { gameStarted = false; showResetConfirm = false; showMenuConfirm = false; showTurnSelect = false; resetGame(false); }
+    function confirmReset() { if (winner || isDraw) resetGame(true); else { showResetConfirm = true; showMenuConfirm = false; render(); } }
     function cancelReset() { showResetConfirm = false; render(); }
+    
+    function confirmMenu() { if (winner || isDraw) backToHome(); else { showMenuConfirm = true; showResetConfirm = false; render(); } }
+    function cancelMenu() { showMenuConfirm = false; render(); }
     
     function resetGame(keepStarted = true) {
         if (aiTimeoutId) clearTimeout(aiTimeoutId);
         board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
         currentPlayer = PLAYER1; winner = null; isDraw = false; winningCells = []; isAnimating = false; history = [];
-        showResetConfirm = false; gameStarted = keepStarted; render();
+        showResetConfirm = false; showMenuConfirm = false; gameStarted = keepStarted; 
+        
+        if (gameStarted && isAiMode && currentPlayer === aiPlayer) {
+             isAnimating = true; 
+             aiTimeoutId = setTimeout(makeAiMove, 650);
+        }
+        render();
     }
 
     function render() {
         const app = document.getElementById('app');
-        const canUndo = history.length > 0 && !winner && !isDraw && !isAnimating && !showResetConfirm;
+        const canUndo = history.length > 0 && !winner && !isDraw && !isAnimating && !showResetConfirm && !showMenuConfirm && !showTurnSelect;
         const undoBtnStyle = canUndo ? "bg-white text-gray-600 border border-gray-100 btn-soft-shadow hover:bg-gray-50" : "bg-gray-100 text-gray-400 cursor-not-allowed";
 
         const gridHtml = board.map((row, rIdx) => 
@@ -431,11 +471,12 @@
         let modeBadgeHtml = '';
         if (isAiMode) {
             let bg = 'var(--normal-btn-bg)';
-            if (aiDifficulty === 'Hard') bg = 'var(--brand-blue)';
-            else if (aiDifficulty === 'Pro') bg = 'var(--pro-btn-bg)';
-            modeBadgeHtml = `<div style="background: ${bg}; color: white; padding: 4px 12px; border-radius: 100px; font-size: var(--mode-text-size); font-weight: 800;">VS AI ${aiDifficulty.toUpperCase()}</div>`;
+            let label = 'VS AI NORMAL';
+            if (aiDifficulty === 'Hard') { bg = 'var(--brand-blue)'; label = 'VS AI HARD'; }
+            else if (aiDifficulty === 'Pro') { bg = 'var(--pro-btn-bg)'; label = 'VS AI PRO'; }
+            modeBadgeHtml = `<div style="background: ${bg}; color: white; padding: 4px 12px; border-radius: 100px; font-size: var(--mode-text-size); font-weight: 800; white-space: nowrap;">${label}</div>`;
         } else {
-            modeBadgeHtml = `<div style="background: white; color: var(--brand-blue); border: 2px solid #e2e8f0; padding: 2px 12px; border-radius: 100px; font-size: var(--mode-text-size); font-weight: 800;">VS FRIEND</div>`;
+            modeBadgeHtml = `<div style="background: white; color: var(--brand-blue); border: 2px solid #e2e8f0; padding: 2px 12px; border-radius: 100px; font-size: var(--mode-text-size); font-weight: 800; white-space: nowrap;">VS FRIEND</div>`;
         }
 
         app.innerHTML = `
@@ -454,14 +495,38 @@
                     </div>
                 ` : ''}
 
+                ${showTurnSelect ? `
+                    <div class="modal-overlay fade-in">
+                        <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width); text-align: center;">
+                            <h3 style="font-size: var(--modal-title); font-weight: 900; color: white; margin-bottom: 30px;">SELECT TURN</h3>
+                            <div style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+                                <button onclick="selectTurn(true)" class="btn-soft-shadow" style="background: var(--brand-blue); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: none;">YOU FIRST</button>
+                                <button onclick="selectTurn(false)" class="btn-soft-shadow" style="background: white; color: var(--brand-blue); width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: none;">AI FIRST</button>
+                                <button onclick="cancelTurnSelect()" style="color: white; font-weight: 800; cursor: pointer; background: none; border: none; font-size: var(--modal-btn-text); width: 100%; margin-top: 8px;">CANCEL</button>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
                 ${showResetConfirm ? `
                     <div class="modal-overlay fade-in">
                         <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width); text-align: center;">
                             <h3 style="font-size: var(--modal-title); font-weight: 900; color: white; margin-bottom: 40px;">RESET GAME?</h3>
                             <div style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
                                 <button onclick="resetGame(true)" class="btn-soft-shadow" style="background: white; color: #ef4444; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 900; font-size: var(--modal-btn-text); border: none;">RESET NOW</button>
-                                <button onclick="backToHome()" style="background: rgba(255,255,255,0.3); color: white; width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 800; font-size: var(--modal-btn-text); border: 1px solid rgba(255,255,255,0.4);">MAIN MENU</button>
                                 <button onclick="cancelReset()" style="color: white; font-weight: 800; cursor: pointer; background: none; border: none; font-size: var(--modal-btn-text); width: 100%;">CANCEL</button>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${showMenuConfirm ? `
+                    <div class="modal-overlay fade-in">
+                        <div class="pop-up" style="width: var(--modal-width); max-width: var(--modal-max-width); text-align: center;">
+                            <h3 style="font-size: var(--modal-title); font-weight: 900; color: white; margin-bottom: 40px;">RETURN TO MENU?</h3>
+                            <div style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+                                <button onclick="backToHome()" class="btn-soft-shadow" style="background: white; color: var(--brand-blue); width: 100%; padding: var(--modal-btn-padding); border-radius: 100px; font-weight: 900; font-size: var(--modal-btn-text); border: none;">YES, EXIT</button>
+                                <button onclick="cancelMenu()" style="color: white; font-weight: 800; cursor: pointer; background: none; border: none; font-size: var(--modal-btn-text); width: 100%;">CANCEL</button>
                             </div>
                         </div>
                     </div>
@@ -482,22 +547,25 @@
                     </div>
                 ` : ''}
 
-                <div id="game-container" style="display: ${gameStarted ? 'flex' : 'none'}; ${(winner || isDraw || showResetConfirm) ? 'filter: blur(8px); transition: filter 0.3s;' : 'transition: filter 0.3s;'}">
+                <div id="game-container" style="display: ${gameStarted ? 'flex' : 'none'}; ${(winner || isDraw || showResetConfirm || showMenuConfirm || showTurnSelect) ? 'filter: blur(8px); transition: filter 0.3s;' : 'transition: filter 0.3s;'}">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                         <h1 style="font-size: var(--title-size); font-weight: 900; color: #1e293b; letter-spacing: -0.03em;">CONNECT 4</h1>
-                        <div style="display: flex; gap: 15px;">
-                            <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="rounded-full font-black transition-all ${undoBtnStyle}" style="padding: var(--btn-padding); font-size: var(--btn-text);">UNDO</button>
+                        <div style="display: flex; gap: 12px;">
                             <button onclick="confirmReset()" class="bg-white text-gray-600 border border-gray-100 rounded-full font-black hover:bg-gray-50 transition-all btn-soft-shadow" style="padding: var(--btn-padding); font-size: var(--btn-text);">RESET</button>
+                            <button onclick="confirmMenu()" class="bg-white text-gray-600 border border-gray-100 rounded-full font-black hover:bg-gray-50 transition-all btn-soft-shadow" style="padding: var(--btn-padding); font-size: var(--btn-text);">MENU</button>
                         </div>
                     </div>
                     <div class="board-bg">${gridHtml}</div>
                     <div style="margin-top: var(--footer-margin); display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <div style="display: flex; align-items: center;">
+                        <div style="flex: 1; display: flex; align-items: center;">
                             ${modeBadgeHtml}
                         </div>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span style="font-weight: 900; color: #64748b; font-size: var(--mode-text-size);"> ${(isAiMode && currentPlayer === PLAYER2) ? 'AI...' : 'NEXT'} </span>
+                        <div style="flex: 1; display: flex; align-items: center; gap: 12px; justify-content: center;">
+                            <span style="font-weight: 900; color: #64748b; font-size: var(--mode-text-size);"> ${(isAiMode && currentPlayer === aiPlayer) ? 'AI...' : 'NEXT'} </span>
                             <div style="width: var(--next-ui-size); height: var(--next-ui-size); border-radius: 50%; background: ${currentPlayer === PLAYER1 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)'};" class="${(!winner && !isDraw) ? 'animate-pulse' : ''}"></div>
+                        </div>
+                        <div style="flex: 1; display: flex; justify-content: flex-end;">
+                            <button onclick="undoMove()" ${!canUndo ? 'disabled' : ''} class="rounded-full font-black transition-all ${undoBtnStyle}" style="padding: var(--btn-padding); font-size: var(--btn-text);">UNDO</button>
                         </div>
                     </div>
                 </div>
